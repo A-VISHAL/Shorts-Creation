@@ -1,0 +1,13 @@
+{
+  "success": true,
+  "jobId": "job_e9f8a7b6c5d4",
+  "status": "completed",
+  "videoUrl": "http://localhost:8000/media/rendered_job_e9f8a7b6c5d4.mp4",
+  "downloadUrl": "http://localhost:8000/api/video/job_e9f8a7b6c5d4/download",
+  "title": "Build Your Future",
+  "durationSeconds": 30,
+  "width": 1080,
+  "height": 1920,
+  "sizeBytes": 4821504,
+  "style": "dark-motivational"
+}

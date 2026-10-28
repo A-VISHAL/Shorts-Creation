@@ -1,0 +1,8 @@
+{
+  "success": false,
+  "status": "failed",
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "durationSeconds must be between 5 and 120."
+  }
+}

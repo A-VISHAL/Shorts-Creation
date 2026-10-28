@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "mediaUrl": "http://localhost:8000/media/dl_video_7a8b9c0d1e.mp4",
+  "filename": "dl_video_7a8b9c0d1e.mp4",
+  "mediaType": "video",
+  "duration": 15.02,
+  "width": 1920,
+  "height": 1080,
+  "sizeBytes": 2841920,
+  "contentType": "video/mp4"
+}
