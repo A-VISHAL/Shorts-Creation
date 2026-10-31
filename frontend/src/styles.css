@@ -7,48 +7,57 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
 /* -----------------------------------------------------------------------------
-   CORE NEON TOKENS & DARK THEME (DEFAULT)
+/* -----------------------------------------------------------------------------
+   CORE CLEAN DESIGN TOKENS & DARK THEME (DEFAULT)
    ----------------------------------------------------------------------------- */
 :root, [data-theme="dark"] {
-  /* Neon Palette */
-  --neon-cyan: #00f0ff;
-  --neon-cyan-glow: rgba(0, 240, 255, 0.45);
-  --neon-cyan-subtle: rgba(0, 240, 255, 0.12);
-  --neon-cyan-border: rgba(0, 240, 255, 0.5);
+  /* Unified Brand & Accent Palette (Clean Modern SaaS) */
+  --accent-primary: #3b82f6;
+  --accent-primary-hover: #2563eb;
+  --accent-primary-subtle: rgba(59, 130, 246, 0.1);
+  --accent-primary-border: rgba(59, 130, 246, 0.35);
+  --accent-primary-glow: rgba(59, 130, 246, 0.2);
 
-  --neon-pink: #ff007f;
-  --neon-pink-glow: rgba(255, 0, 127, 0.45);
-  --neon-pink-subtle: rgba(255, 0, 127, 0.12);
-  --neon-pink-border: rgba(255, 0, 127, 0.5);
+  --accent-cyan: #0ea5e9;
+  --accent-cyan-subtle: rgba(14, 165, 233, 0.1);
+  --accent-cyan-border: rgba(14, 165, 233, 0.3);
 
-  --neon-amber: #ffaa00;
-  --neon-amber-glow: rgba(255, 170, 0, 0.45);
-  --neon-amber-subtle: rgba(255, 170, 0, 0.12);
-  --neon-amber-border: rgba(255, 170, 0, 0.5);
+  --accent-amber: #f59e0b;
+  --accent-amber-subtle: rgba(245, 158, 11, 0.1);
+  --accent-amber-border: rgba(245, 158, 11, 0.3);
 
-  --neon-purple: #b026ff;
-  --neon-purple-glow: rgba(176, 38, 255, 0.45);
-  --neon-purple-subtle: rgba(176, 38, 255, 0.12);
-  --neon-purple-border: rgba(176, 38, 255, 0.5);
+  --accent-purple: #6366f1;
+  --accent-purple-subtle: rgba(99, 102, 241, 0.1);
+  --accent-purple-border: rgba(99, 102, 241, 0.3);
 
-  --neon-green: #00ff88;
-  --neon-green-glow: rgba(0, 255, 136, 0.5);
-  --neon-green-subtle: rgba(0, 255, 136, 0.14);
-  --neon-green-border: rgba(0, 255, 136, 0.5);
+  /* Legacy Neon Aliases mapped to clean harmonic colors */
+  --neon-cyan: var(--accent-cyan);
+  --neon-cyan-glow: var(--accent-primary-glow);
+  --neon-cyan-subtle: var(--accent-cyan-subtle);
+  --neon-cyan-border: var(--accent-cyan-border);
 
-  /* Primary Accent Alias */
-  --accent-primary: var(--neon-pink);
-  --accent-primary-hover: #e0006f;
-  --accent-primary-subtle: var(--neon-pink-subtle);
-  --accent-primary-border: var(--neon-pink-border);
-  --accent-primary-glow: var(--neon-pink-glow);
+  --neon-pink: var(--accent-primary);
+  --neon-pink-glow: var(--accent-primary-glow);
+  --neon-pink-subtle: var(--accent-primary-subtle);
+  --neon-pink-border: var(--accent-primary-border);
 
-  --accent-cyan: var(--neon-cyan);
-  --accent-amber: var(--neon-amber);
-  --accent-purple: var(--neon-purple);
+  --neon-amber: var(--accent-amber);
+  --neon-amber-glow: rgba(245, 158, 11, 0.2);
+  --neon-amber-subtle: var(--accent-amber-subtle);
+  --neon-amber-border: var(--accent-amber-border);
+
+  --neon-purple: var(--accent-purple);
+  --neon-purple-glow: rgba(99, 102, 241, 0.2);
+  --neon-purple-subtle: var(--accent-purple-subtle);
+  --neon-purple-border: var(--accent-purple-border);
+
+  --neon-green: #10b981;
+  --neon-green-glow: rgba(16, 185, 129, 0.25);
+  --neon-green-subtle: rgba(16, 185, 129, 0.12);
+  --neon-green-border: rgba(16, 185, 129, 0.35);
 
   /* Dark Theme Surfaces */
-  --bg-app: #080c16;
+  --bg-app: #090d16;
   --bg-surface: #0f172a;
   --bg-surface-elevated: #162035;
   --bg-surface-hover: #1e2c47;
@@ -56,118 +65,125 @@
   --bg-input: #0a0f1d;
   --bg-input-focus: #10182c;
 
-  /* Borders */
+  /* Clean Borders */
   --border-subtle: #1e293b;
   --border-medium: #334155;
   --border-bright: #475569;
-  --border-focus: var(--neon-cyan);
+  --border-focus: var(--accent-primary);
 
   /* Status Colors */
-  --status-success: var(--neon-green);
-  --status-success-subtle: var(--neon-green-subtle);
-  --status-success-border: var(--neon-green-border);
-  --status-error: #ff3366;
-  --status-error-subtle: rgba(255, 51, 102, 0.15);
-  --status-error-border: rgba(255, 51, 102, 0.45);
+  --status-success: #10b981;
+  --status-success-subtle: rgba(16, 185, 129, 0.12);
+  --status-success-border: rgba(16, 185, 129, 0.35);
+  --status-error: #ef4444;
+  --status-error-subtle: rgba(239, 68, 68, 0.12);
+  --status-error-border: rgba(239, 68, 68, 0.35);
 
-  /* Typography - Razor Sharp Contrast */
-  --text-primary: #ffffff;
-  --text-secondary: #f1f5f9;
+  /* Typography - Clean Crisp Contrast */
+  --text-primary: #f8fafc;
+  --text-secondary: #e2e8f0;
   --text-tertiary: #cbd5e1;
   --text-muted: #94a3b8;
-  --text-inverse: #080c16;
+  --text-inverse: #090d16;
 
-  /* Shadows */
-  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.6);
-  --shadow-lg: 0 20px 48px -10px rgba(0, 0, 0, 0.8);
-  --shadow-accent: 0 8px 30px -4px var(--neon-pink-glow);
+  /* Shadows (Subtle, Clean - No Loud Glow) */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 32px -4px rgba(0, 0, 0, 0.6);
+  --shadow-accent: 0 4px 18px -2px rgba(59, 130, 246, 0.3);
 
   /* Phone Bezel */
-  --bezel-body: #050811;
+  --bezel-body: #070a12;
   --bezel-border: #1e293b;
   --bezel-notch: #334155;
 }
 
 /* -----------------------------------------------------------------------------
-   THEME 2: HIGH-CONTRAST NEON LIGHT (CLEAR TEXT + VIVID NEON SECTIONS)
+   THEME 2: CRISP LIGHT THEME (CLEAN TEXT + MINIMAL BORDERS)
    ----------------------------------------------------------------------------- */
 [data-theme="light"] {
-  /* Saturated Neon Light Tokens */
-  --neon-cyan: #00b4d8;
-  --neon-cyan-glow: rgba(0, 180, 216, 0.35);
-  --neon-cyan-subtle: rgba(0, 180, 216, 0.12);
-  --neon-cyan-border: rgba(0, 180, 216, 0.45);
+  --accent-primary: #2563eb;
+  --accent-primary-hover: #1d4ed8;
+  --accent-primary-subtle: rgba(37, 99, 235, 0.08);
+  --accent-primary-border: rgba(37, 99, 235, 0.3);
+  --accent-primary-glow: rgba(37, 99, 235, 0.15);
 
-  --neon-pink: #f43f5e;
-  --neon-pink-glow: rgba(244, 63, 94, 0.35);
-  --neon-pink-subtle: rgba(244, 63, 94, 0.12);
-  --neon-pink-border: rgba(244, 63, 94, 0.45);
+  --accent-cyan: #0284c7;
+  --accent-cyan-subtle: rgba(2, 132, 199, 0.08);
+  --accent-cyan-border: rgba(2, 132, 199, 0.3);
 
-  --neon-amber: #d97706;
-  --neon-amber-glow: rgba(217, 119, 6, 0.35);
-  --neon-amber-subtle: rgba(217, 119, 6, 0.12);
-  --neon-amber-border: rgba(217, 119, 6, 0.45);
+  --accent-amber: #d97706;
+  --accent-amber-subtle: rgba(217, 119, 6, 0.08);
+  --accent-amber-border: rgba(217, 119, 6, 0.3);
 
-  --neon-purple: #7c3aed;
-  --neon-purple-glow: rgba(124, 58, 237, 0.35);
-  --neon-purple-subtle: rgba(124, 58, 237, 0.12);
-  --neon-purple-border: rgba(124, 58, 237, 0.45);
+  --accent-purple: #4f46e5;
+  --accent-purple-subtle: rgba(79, 70, 229, 0.08);
+  --accent-purple-border: rgba(79, 70, 229, 0.3);
+
+  --neon-cyan: var(--accent-cyan);
+  --neon-cyan-glow: var(--accent-primary-glow);
+  --neon-cyan-subtle: var(--accent-cyan-subtle);
+  --neon-cyan-border: var(--accent-cyan-border);
+
+  --neon-pink: var(--accent-primary);
+  --neon-pink-glow: var(--accent-primary-glow);
+  --neon-pink-subtle: var(--accent-primary-subtle);
+  --neon-pink-border: var(--accent-primary-border);
+
+  --neon-amber: var(--accent-amber);
+  --neon-amber-glow: rgba(217, 119, 6, 0.15);
+  --neon-amber-subtle: var(--accent-amber-subtle);
+  --neon-amber-border: var(--accent-amber-border);
+
+  --neon-purple: var(--accent-purple);
+  --neon-purple-glow: rgba(79, 70, 229, 0.15);
+  --neon-purple-subtle: var(--accent-purple-subtle);
+  --neon-purple-border: var(--accent-purple-border);
 
   --neon-green: #059669;
-  --neon-green-glow: rgba(5, 150, 105, 0.35);
-  --neon-green-subtle: rgba(5, 150, 105, 0.12);
-  --neon-green-border: rgba(5, 150, 105, 0.45);
-
-  --accent-primary: var(--neon-pink);
-  --accent-primary-hover: #e11d48;
-  --accent-primary-subtle: var(--neon-pink-subtle);
-  --accent-primary-border: var(--neon-pink-border);
-  --accent-primary-glow: var(--neon-pink-glow);
-
-  --accent-cyan: var(--neon-cyan);
-  --accent-amber: var(--neon-amber);
-  --accent-purple: var(--neon-purple);
+  --neon-green-glow: rgba(5, 150, 105, 0.15);
+  --neon-green-subtle: rgba(5, 150, 105, 0.08);
+  --neon-green-border: rgba(5, 150, 105, 0.3);
 
   /* Light Theme Surfaces */
-  --bg-app: #f1f5f9;
+  --bg-app: #f8fafc;
   --bg-surface: #ffffff;
-  --bg-surface-elevated: #f8fafc;
-  --bg-surface-hover: #f1f5f9;
-  --bg-surface-active: #e2e8f0;
+  --bg-surface-elevated: #f1f5f9;
+  --bg-surface-hover: #e2e8f0;
+  --bg-surface-active: #cbd5e1;
   --bg-input: #ffffff;
   --bg-input-focus: #ffffff;
 
   /* Crisp High-Contrast Borders */
-  --border-subtle: #cbd5e1;
-  --border-medium: #94a3b8;
-  --border-bright: #64748b;
-  --border-focus: var(--neon-cyan);
+  --border-subtle: #e2e8f0;
+  --border-medium: #cbd5e1;
+  --border-bright: #94a3b8;
+  --border-focus: var(--accent-primary);
 
   /* Status Colors */
   --status-success: #059669;
-  --status-success-subtle: rgba(5, 150, 105, 0.12);
-  --status-success-border: rgba(5, 150, 105, 0.4);
-  --status-error: #e11d48;
-  --status-error-subtle: rgba(225, 29, 72, 0.12);
-  --status-error-border: rgba(225, 29, 72, 0.4);
+  --status-success-subtle: rgba(5, 150, 105, 0.1);
+  --status-success-border: rgba(5, 150, 105, 0.3);
+  --status-error: #dc2626;
+  --status-error-subtle: rgba(220, 38, 38, 0.1);
+  --status-error-border: rgba(220, 38, 38, 0.3);
 
-  /* Typography - Ultra Dark & Razor Sharp (No Faint Gray!) */
-  --text-primary: #060913;
-  --text-secondary: #1e293b;
-  --text-tertiary: #334155;
+  /* Typography - Clean, High Legibility */
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-tertiary: #475569;
   --text-muted: #64748b;
   --text-inverse: #ffffff;
 
   /* Shadows */
-  --shadow-sm: 0 2px 5px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 8px 20px -3px rgba(15, 23, 42, 0.08);
-  --shadow-lg: 0 16px 36px -6px rgba(15, 23, 42, 0.12);
-  --shadow-accent: 0 8px 24px -4px var(--neon-pink-glow);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 10px 24px -4px rgba(15, 23, 42, 0.1);
+  --shadow-accent: 0 4px 14px -2px rgba(37, 99, 235, 0.2);
 
   /* Phone Bezel */
   --bezel-body: #0f172a;
-  --bezel-border: #334155;
+  --bezel-border: #cbd5e1;
   --bezel-notch: #475569;
 }
 
@@ -256,17 +272,17 @@ body {
   width: 38px;
   height: 38px;
   border-radius: 9px;
-  background: linear-gradient(135deg, var(--neon-pink) 0%, #be123c 100%);
+  background: linear-gradient(135deg, var(--accent-primary) 0%, #1d4ed8 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 18px var(--neon-pink-glow);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
   color: #ffffff;
 }
 
 [data-theme="light"] .brand-icon-wrap {
-  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-  box-shadow: 0 0 14px rgba(244, 63, 94, 0.35);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
 }
 
 .brand-name {
@@ -283,11 +299,11 @@ body {
   gap: 0.35rem;
   padding: 0.22rem 0.65rem;
   border-radius: 9999px;
-  background: var(--neon-pink-subtle);
-  border: 1px solid var(--neon-pink-border);
-  color: var(--neon-pink);
+  background: var(--accent-primary-subtle);
+  border: 1px solid var(--accent-primary-border);
+  color: var(--accent-primary);
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   font-family: 'JetBrains Mono', monospace;
@@ -600,9 +616,9 @@ body {
 }
 
 .preset-card.active {
-  background: rgba(244, 63, 94, 0.08);
-  border: 1.5px solid #f43f5e;
-  box-shadow: 0 0 12px rgba(244, 63, 94, 0.2);
+  background: var(--accent-primary-subtle);
+  border: 1.5px solid var(--accent-primary);
+  box-shadow: 0 0 12px var(--accent-primary-glow);
 }
 
 .preset-top {
@@ -740,8 +756,8 @@ body {
 .input-cyan:focus, .input-amber:focus {
   outline: none;
   background: var(--bg-input-focus);
-  border-color: #f43f5e;
-  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.15);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-subtle);
 }
 
 .studio-textarea {
@@ -801,18 +817,18 @@ body {
 }
 
 .segmented-btn.active {
-  background: var(--bg-surface-elevated);
+  background: var(--accent-primary);
   color: #ffffff;
-  border: 1px solid var(--border-bright);
+  border: 1px solid var(--accent-primary);
   font-weight: 700;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 [data-theme="light"] .segmented-btn.active {
-  background: #ffffff;
-  color: #0f172a;
-  border-color: #cbd5e1;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  background: var(--accent-primary);
+  color: #ffffff;
+  border-color: var(--accent-primary);
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.2);
 }
 
 /* Style Grid Cards */
@@ -846,9 +862,9 @@ body {
 }
 
 .style-card.selected {
-  background: rgba(244, 63, 94, 0.08);
-  border: 1.5px solid #f43f5e;
-  box-shadow: 0 0 12px rgba(244, 63, 94, 0.18);
+  background: var(--accent-primary-subtle);
+  border: 1.5px solid var(--accent-primary);
+  box-shadow: 0 0 12px var(--accent-primary-glow);
 }
 
 .style-card-header {
@@ -874,8 +890,8 @@ body {
 }
 
 .style-card.selected .style-radio {
-  border-color: #f43f5e;
-  background: #f43f5e;
+  border-color: var(--accent-primary);
+  background: var(--accent-primary);
 }
 
 .style-radio-inner {
@@ -899,7 +915,7 @@ body {
   width: 100%;
   padding: 1.05rem 1.85rem;
   border-radius: 10px;
-  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  background: linear-gradient(135deg, var(--accent-primary) 0%, #1d4ed8 100%);
   border: 1px solid rgba(255, 255, 255, 0.15);
   color: #ffffff;
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -911,15 +927,15 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.65rem;
-  box-shadow: 0 4px 16px rgba(244, 63, 94, 0.35);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
   transition: all 0.18s ease;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .btn-generate:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 22px rgba(244, 63, 94, 0.45);
-  filter: brightness(1.08);
+  box-shadow: 0 6px 22px rgba(37, 99, 235, 0.45);
+  filter: brightness(1.06);
 }
 
 .btn-generate:active:not(:disabled) {
@@ -993,7 +1009,7 @@ body {
 }
 
 .preview-heading-icon {
-  color: #f43f5e;
+  color: var(--accent-primary);
 }
 
 .resolution-pill {
@@ -1120,10 +1136,10 @@ body {
 
 .progress-track-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--neon-pink), var(--neon-amber), var(--neon-cyan));
+  background: var(--accent-primary);
   border-radius: 9999px;
   transition: width 0.35s ease;
-  box-shadow: 0 0 14px var(--neon-cyan);
+  box-shadow: 0 0 8px var(--accent-primary-glow);
 }
 
 .stage-tracker-list {
@@ -1541,24 +1557,24 @@ body {
 }
 
 .nav-mode-btn.active {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border: 1.5px solid var(--border-bright);
-  box-shadow: var(--shadow-sm);
+  background: var(--bg-surface-elevated);
+  color: #ffffff;
+  border: 1px solid var(--border-bright);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 [data-theme="dark"] .nav-mode-btn.active {
-  background: var(--neon-cyan-subtle);
-  border-color: var(--neon-cyan);
+  background: var(--bg-surface-elevated);
+  border-color: var(--border-bright);
   color: #ffffff;
-  box-shadow: 0 0 14px var(--neon-cyan-glow);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 [data-theme="light"] .nav-mode-btn.active {
   background: #ffffff;
-  border-color: var(--neon-cyan);
+  border-color: var(--border-medium);
   color: var(--text-primary);
-  box-shadow: 0 2px 10px rgba(0, 180, 216, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 .nav-mode-icon {
@@ -1568,13 +1584,12 @@ body {
 .nav-mode-badge-new {
   display: inline-block;
   font-size: 0.62rem;
-  font-weight: 800;
+  font-weight: 700;
   padding: 0.12rem 0.45rem;
   border-radius: 9999px;
-  background: var(--neon-pink);
+  background: var(--accent-primary);
   color: #ffffff;
   letter-spacing: 0.04em;
-  box-shadow: 0 0 8px var(--neon-pink-glow);
 }
 
 /* ==============================================================================

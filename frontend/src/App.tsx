@@ -630,20 +630,20 @@ export function App() {
               <div className="module-card section-canvas">
                 <div className="module-header">
                   <div className="module-title-group">
-                    <span className="module-step-badge badge-canvas">03 CANVAS</span>
+                    <span className="module-step-badge">03 CANVAS</span>
                     <h2 className="module-title">Canvas Parameters</h2>
                   </div>
-                  <span className="module-subtitle subtitle-canvas">Duration & Subtitle Theme</span>
+                  <span className="module-subtitle">Duration & Subtitle Theme</span>
                 </div>
 
                 {/* Duration Segmented Control */}
                 <div className="form-field">
                   <div className="field-label-row">
                     <label className="field-label">
-                      <Clock size={15} className="field-label-icon icon-purple" />
+                      <Clock size={15} className="field-label-icon" />
                       <span>Target Duration</span>
                     </label>
-                    <span className="field-hint hint-purple">Preset Duration</span>
+                    <span className="field-hint">Preset Duration</span>
                   </div>
                   <div className="segmented-control">
                     {[10, 30, 60].map((d) => (
@@ -664,10 +664,10 @@ export function App() {
                 <div className="form-field" style={{ marginTop: '1.25rem' }}>
                   <div className="field-label-row">
                     <label className="field-label">
-                      <Layers size={15} className="field-label-icon icon-purple" />
+                      <Layers size={15} className="field-label-icon" />
                       <span>Visual Typography Style</span>
                     </label>
-                    <span className="field-hint hint-purple">Overlay Theme</span>
+                    <span className="field-hint">Overlay Theme</span>
                   </div>
                   <div className="style-grid">
                     <div
@@ -715,7 +715,7 @@ export function App() {
               {/* SECTION: Generation Trigger */}
               <button
                 type="submit"
-                className="btn-generate btn-generate-neon"
+                className="btn-generate"
                 disabled={loading}
               >
                 {loading ? (

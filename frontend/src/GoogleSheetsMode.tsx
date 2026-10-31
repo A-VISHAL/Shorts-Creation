@@ -655,10 +655,10 @@ export function GoogleSheetsMode({ config, showToast }: GoogleSheetsModeProps) {
             <div className="form-field" style={{ marginTop: '1.25rem' }}>
               <div className="field-label-row">
                 <label className="field-label">
-                  <Clock size={14} className="icon-purple" />
+                  <Clock size={14} className="field-label-icon" />
                   <span>Target Duration</span>
                 </label>
-                <span className="field-hint hint-purple">Preset Duration</span>
+                <span className="field-hint">Preset Duration</span>
               </div>
               <div className="segmented-control">
                 {[10, 30, 60].map((d) => (
@@ -679,10 +679,10 @@ export function GoogleSheetsMode({ config, showToast }: GoogleSheetsModeProps) {
             <div className="form-field" style={{ marginTop: '1.25rem' }}>
               <div className="field-label-row">
                 <label className="field-label">
-                  <Layers size={14} className="icon-purple" />
+                  <Layers size={14} className="field-label-icon" />
                   <span>Visual Typography Theme</span>
                 </label>
-                <span className="field-hint hint-purple">Overlay Theme</span>
+                <span className="field-hint">Overlay Theme</span>
               </div>
               <div className="style-grid">
                 <div
@@ -803,7 +803,7 @@ export function GoogleSheetsMode({ config, showToast }: GoogleSheetsModeProps) {
           {/* MASTER TRIGGER: GENERATE SHORTS */}
           <button
             type="button"
-            className="btn-generate btn-generate-neon"
+            className="btn-generate"
             onClick={handleGenerateFromSheet}
             disabled={generating || inspecting}
           >
