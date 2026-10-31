@@ -48,6 +48,7 @@ React Preview in 9:16 Shorts Mockup & Instant MP4 Download
 motivational-shorts-studio/
 ├── backend/
 │   ├── app.py                     # Complete FastAPI server, security, FFmpeg engine & Webhook proxy
+│   ├── connection_manager.py      # Automated lifecycle manager for backend, Cloudflare Tunnel & auto-reconnect
 │   ├── requirements.txt           # Python dependencies
 │   ├── .env.example               # Backend configuration template
 │   ├── .env                       # Local environment configuration
@@ -55,6 +56,7 @@ motivational-shorts-studio/
 │   ├── media/                     # Storage directory for downloads and outputs
 │   └── tests/
 │       ├── conftest.py            # Synthetic media fixtures (FFmpeg-generated)
+│       ├── test_connection_manager.py # Lifecycle, tunnel parsing, backoff, SSRF & health tests
 │       ├── test_health_and_auth.py# Status, health, and X-API-Key tests
 │       ├── test_validation_and_ssrf.py # Input bounds, scheme, and SSRF tests
 │       ├── test_render_e2e.py     # Real FFmpeg rendering and probe test

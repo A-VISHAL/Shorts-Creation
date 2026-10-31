@@ -50,23 +50,50 @@ export interface BackendHealth {
   };
 }
 
+export interface ConnectionStatus {
+  backend: {
+    status: 'online' | 'starting' | 'offline';
+    localUrl: string;
+    isManaged?: boolean;
+  };
+  tunnel: {
+    status: 'connected' | 'connecting' | 'disconnected' | 'error';
+    url: string | null;
+    lastHealthCheck: string | null;
+    reconnectAttempts: number;
+    cloudflaredInstalled: boolean;
+    installInfo?: {
+      os: string;
+      command: string;
+      downloadUrl: string;
+      hint: string;
+    } | null;
+    error: string | null;
+  };
+  proxy: {
+    enabled: boolean;
+    mode: string;
+  };
+}
+
 export interface StudioConfig {
   webhookUrl: string;
-  fastApiBaseUrl: string;
-  useProxy: boolean;
+  productionWebhookUrl: string;
+  testWebhookUrl: string;
 }
+
+export const LOCAL_BACKEND_URL = 'http://localhost:8000';
 
 export const STORAGE_KEYS = {
   WEBHOOK_URL: 'shorts_studio_n8n_webhook_url',
-  FASTAPI_URL: 'shorts_studio_fastapi_base_url',
-  USE_PROXY: 'shorts_studio_use_proxy_mode',
+  PROD_WEBHOOK_URL: 'shorts_studio_prod_webhook_url',
+  TEST_WEBHOOK_URL: 'shorts_studio_test_webhook_url',
 };
 
-// Defaults: cloud n8n orchestrator + current Cloudflare Quick Tunnel
 export const DEFAULT_CONFIG: StudioConfig = {
   webhookUrl: 'https://lukizerk3.app.n8n.cloud/webhook/generate-motivational-short',
-  fastApiBaseUrl: 'https://disclose-oil-half-spending.trycloudflare.com',
-  useProxy: true,
+  productionWebhookUrl: 'https://lukizerk3.app.n8n.cloud/webhook/generate-motivational-short',
+  testWebhookUrl: 'https://lukizerk3.app.n8n.cloud/webhook-test/generate-motivational-short',
 };
 
 /**
@@ -94,22 +121,18 @@ export function isValidHttpUrl(url: string): boolean {
  */
 export function loadStoredConfig(): StudioConfig {
   const envWebhook = import.meta.env.VITE_N8N_WEBHOOK_URL;
-  const envFastApi = import.meta.env.VITE_FASTAPI_DIRECT_URL;
-
   const defaultWebhook = envWebhook && !envWebhook.includes('localhost:5678')
     ? envWebhook
     : DEFAULT_CONFIG.webhookUrl;
 
-  const defaultFastApi = envFastApi || DEFAULT_CONFIG.fastApiBaseUrl;
-
   const storedWebhook = localStorage.getItem(STORAGE_KEYS.WEBHOOK_URL);
-  const storedFastApi = localStorage.getItem(STORAGE_KEYS.FASTAPI_URL);
-  const storedProxy = localStorage.getItem(STORAGE_KEYS.USE_PROXY);
+  const storedProd = localStorage.getItem(STORAGE_KEYS.PROD_WEBHOOK_URL);
+  const storedTest = localStorage.getItem(STORAGE_KEYS.TEST_WEBHOOK_URL);
 
   return {
     webhookUrl: storedWebhook && isValidHttpUrl(storedWebhook) ? storedWebhook : defaultWebhook,
-    fastApiBaseUrl: storedFastApi && isValidHttpUrl(storedFastApi) ? storedFastApi : defaultFastApi,
-    useProxy: storedProxy !== null ? storedProxy === 'true' : true,
+    productionWebhookUrl: storedProd && isValidHttpUrl(storedProd) ? storedProd : DEFAULT_CONFIG.productionWebhookUrl,
+    testWebhookUrl: storedTest && isValidHttpUrl(storedTest) ? storedTest : DEFAULT_CONFIG.testWebhookUrl,
   };
 }
 
@@ -118,63 +141,117 @@ export function loadStoredConfig(): StudioConfig {
  */
 export function saveStoredConfig(config: StudioConfig): void {
   const cleanWebhook = normalizeUrl(config.webhookUrl);
-  const cleanFastApi = normalizeUrl(config.fastApiBaseUrl);
 
   if (!isValidHttpUrl(cleanWebhook)) {
     throw new Error('n8n Webhook URL must be a valid HTTP or HTTPS address.');
   }
-  if (!isValidHttpUrl(cleanFastApi)) {
-    throw new Error('FastAPI Public Base URL must be a valid HTTP or HTTPS address.');
-  }
 
   localStorage.setItem(STORAGE_KEYS.WEBHOOK_URL, cleanWebhook);
-  localStorage.setItem(STORAGE_KEYS.FASTAPI_URL, cleanFastApi);
-  localStorage.setItem(STORAGE_KEYS.USE_PROXY, String(config.useProxy));
+  localStorage.setItem(STORAGE_KEYS.PROD_WEBHOOK_URL, normalizeUrl(config.productionWebhookUrl));
+  localStorage.setItem(STORAGE_KEYS.TEST_WEBHOOK_URL, normalizeUrl(config.testWebhookUrl));
 }
 
 /**
- * Reset configuration to default cloud endpoints.
+ * Reset configuration to default endpoints.
  */
 export function resetStoredConfig(): StudioConfig {
   localStorage.removeItem(STORAGE_KEYS.WEBHOOK_URL);
-  localStorage.removeItem(STORAGE_KEYS.FASTAPI_URL);
-  localStorage.removeItem(STORAGE_KEYS.USE_PROXY);
+  localStorage.removeItem(STORAGE_KEYS.PROD_WEBHOOK_URL);
+  localStorage.removeItem(STORAGE_KEYS.TEST_WEBHOOK_URL);
   return { ...DEFAULT_CONFIG };
 }
 
 /**
- * Generate Short: Routes through FastAPI backend proxy by default to eliminate browser
- * CORS preflight rejections from cloud n8n, or connects directly if toggled.
+ * Fetch real-time connection status (FastAPI backend + Cloudflare Tunnel).
+ */
+export async function fetchConnectionStatus(backendUrl: string = LOCAL_BACKEND_URL): Promise<ConnectionStatus> {
+  const cleanUrl = normalizeUrl(backendUrl);
+  const target = `${cleanUrl}/api/connection/status`;
+
+  try {
+    const response = await fetch(target, { method: 'GET' });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return await response.json();
+  } catch (err: any) {
+    return {
+      backend: {
+        status: 'offline',
+        localUrl: LOCAL_BACKEND_URL,
+        isManaged: false,
+      },
+      tunnel: {
+        status: 'disconnected',
+        url: null,
+        lastHealthCheck: null,
+        reconnectAttempts: 0,
+        cloudflaredInstalled: false,
+        error: err.message || 'Cannot reach local backend on port 8000',
+      },
+      proxy: {
+        enabled: true,
+        mode: 'automatic',
+      },
+    };
+  }
+}
+
+/**
+ * Trigger immediate Cloudflare Tunnel reconnection.
+ */
+export async function retryTunnelConnection(backendUrl: string = LOCAL_BACKEND_URL): Promise<ConnectionStatus> {
+  const cleanUrl = normalizeUrl(backendUrl);
+  const target = `${cleanUrl}/api/connection/retry`;
+
+  const response = await fetch(target, { method: 'POST' });
+  if (!response.ok) {
+    throw new Error(`Failed to reconnect tunnel: HTTP ${response.status}`);
+  }
+  return await response.json();
+}
+
+/**
+ * Verify n8n webhook reachability via backend server.
+ */
+export async function verifyWebhook(
+  webhookUrl: string,
+  backendUrl: string = LOCAL_BACKEND_URL
+): Promise<{ success: boolean; statusCode: number; message: string }> {
+  const cleanBackend = normalizeUrl(backendUrl);
+  const target = `${cleanBackend}/api/connection/verify-webhook`;
+
+  const response = await fetch(target, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ webhookUrl: normalizeUrl(webhookUrl) }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || data.message || `Verification failed with HTTP ${response.status}`);
+  }
+  return data;
+}
+
+/**
+ * Generate Short: Always routes through the local FastAPI backend proxy.
+ * The backend automatically injects the active Cloudflare Quick Tunnel URL
+ * so that cloud n8n can reach back to download assets and trigger rendering.
  */
 export async function generateShort(
   payload: ShortGeneratePayload,
   webhookUrl: string,
-  fastApiBaseUrl: string,
-  useProxy: boolean = true
+  backendUrl: string = LOCAL_BACKEND_URL
 ): Promise<ShortGenerateResult> {
   const cleanWebhook = normalizeUrl(webhookUrl);
-  const cleanFastApi = normalizeUrl(fastApiBaseUrl);
+  const cleanBackend = normalizeUrl(backendUrl);
 
-  const fullPayload = {
-    ...payload,
-    fastApiBaseUrl: cleanFastApi,
-  };
-
-  let targetUrl: string;
-  let requestBody: string;
-
-  if (useProxy) {
-    // Route via local/tunnel FastAPI proxy to eliminate browser CORS
-    targetUrl = `${cleanFastApi}/api/webhook/proxy`;
-    requestBody = JSON.stringify({
-      webhookUrl: cleanWebhook,
-      payload: fullPayload,
-    });
-  } else {
-    // Direct browser fetch
-    targetUrl = cleanWebhook;
-    requestBody = JSON.stringify(fullPayload);
-  }
+  const targetUrl = `${cleanBackend}/api/webhook/proxy`;
+  const requestBody = JSON.stringify({
+    webhookUrl: cleanWebhook,
+    payload: payload,
+  });
 
   let response: Response;
   try {
@@ -186,16 +263,9 @@ export async function generateShort(
       body: requestBody,
     });
   } catch (err: any) {
-    // Differentiate between CORS failure on direct fetch and other network errors
-    if (!useProxy && (err.name === 'TypeError' || String(err).includes('Failed to fetch'))) {
-      throw new Error(
-        'Browser CORS Rejection: Direct browser request to cloud n8n was blocked by browser security ' +
-        '(cloud n8n does not return CORS headers for preflight OPTIONS requests). ' +
-        'Please enable "Backend Proxy Mode" in Studio Configuration to route requests seamlessly through FastAPI.'
-      );
-    }
     throw new Error(
-      `Network connection error reaching ${useProxy ? 'FastAPI proxy' : 'n8n webhook'} (${targetUrl}): ${err.message || 'Server unreachable'}. Check if the service or tunnel is online.`
+      `Failed to reach local FastAPI backend proxy (${targetUrl}): ${err.message || 'Connection refused'}. ` +
+      `Ensure the local backend is running on port 8000.`
     );
   }
 
@@ -229,9 +299,9 @@ export async function generateShort(
 }
 
 /**
- * Check health of backend service.
+ * Check health of backend service directly.
  */
-export async function fetchHealth(baseUrl: string): Promise<BackendHealth> {
+export async function fetchHealth(baseUrl: string = LOCAL_BACKEND_URL): Promise<BackendHealth> {
   const cleanUrl = normalizeUrl(baseUrl);
   const target = `${cleanUrl}/api/health`;
 

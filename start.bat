@@ -267,16 +267,9 @@ if /i "%USER_CHOICE%"=="D" (
     goto DASHBOARD
 )
 if /i "%USER_CHOICE%"=="T" (
-    where cloudflared >nul 2>nul
-    if %errorlevel% neq 0 (
-        echo.
-        echo [ERROR] 'cloudflared' not found in PATH.
-        echo         Install via: winget install Cloudflare.cloudflared
-        echo.
-        pause
-    ) else (
-        start "Cloudflare Quick Tunnel (Port 8000)" cmd /k "cloudflared tunnel --url http://127.0.0.1:8000"
-    )
+    echo Triggering Cloudflare Tunnel reconnect via Connection Manager...
+    curl -s -X POST http://127.0.0.1:8000/api/connection/retry >nul 2>nul
+    timeout /t 2 /nobreak >nul
     goto DASHBOARD
 )
 if /i "%USER_CHOICE%"=="S" (
@@ -297,6 +290,7 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8000" ^| findstr "LISTENING
 for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":5173" ^| findstr "LISTENING"') do (
     taskkill /f /pid %%a >nul 2>nul
 )
+taskkill /f /im cloudflared.exe >nul 2>nul
 echo All servers cleanly stopped.
 timeout /t 2 /nobreak >nul
 exit /b 0
@@ -495,6 +489,13 @@ while true; do
     echo "  [BACKEND]  FastAPI Server : http://localhost:8000"
     echo "  [DOCS]     API Swagger UI : http://localhost:8000/docs"
     echo "  [MEDIA]    Storage Folder : $PROJECT_ROOT/backend/media"
+    
+    TUNNEL_URL=$(curl -s http://127.0.0.1:8000/api/connection/status 2>/dev/null | grep -o 'https://[a-zA-Z0-9-]*\.trycloudflare\.com' | head -n 1 || true)
+    if [ -n "$TUNNEL_URL" ]; then
+        echo "  [TUNNEL]   Public Tunnel  : $TUNNEL_URL"
+    else
+        echo "  [TUNNEL]   Public Tunnel  : Initializing / Auto-Managed"
+    fi
     echo ""
     if [ -n "$LAST_VIDEO_URL" ]; then
         echo "  [DROPPED VIDEO] $LAST_VIDEO_URL"
@@ -507,7 +508,7 @@ while true; do
     echo "    [o] Open Studio in Default Browser (http://localhost:5173)"
     echo "    [m] Open Media Storage Folder in File Manager"
     echo "    [d] Open API Documentation (Swagger Docs)"
-    echo "    [t] Launch Cloudflare Quick Tunnel (cloudflared)"
+    echo "    [t] Reconnect / Verify Cloudflare Quick Tunnel"
     echo "    [s] Stop all servers and exit"
     echo "    [q] Exit launcher (servers stay running)"
     echo "=============================================================================="
@@ -525,16 +526,15 @@ while true; do
             xdg-open "http://localhost:8000/docs" >/dev/null 2>&1 &
             ;;
         [tT])
-            if ! command -v cloudflared >/dev/null 2>&1; then
-                echo "cloudflared is not installed. Run ./scripts/setup-linux.sh to install it."
-            else
-                cloudflared tunnel --url http://127.0.0.1:8000
-            fi
+            echo "Triggering Cloudflare Tunnel reconnect via Connection Manager..."
+            curl -s -X POST http://127.0.0.1:8000/api/connection/retry >/dev/null 2>&1 || true
+            sleep 2
             ;;
         [sS])
             echo "Stopping servers on ports 8000 and 5173..."
             fuser -k 8000/tcp 2>/dev/null || true
             fuser -k 5173/tcp 2>/dev/null || true
+            pkill -f "cloudflared tunnel.*8000" 2>/dev/null || true
             echo "Servers stopped."
             exit 0
             ;;

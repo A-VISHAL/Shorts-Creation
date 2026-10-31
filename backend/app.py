@@ -21,6 +21,7 @@ import tempfile
 import textwrap
 import time
 import uuid
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional
 from urllib.parse import urlparse
@@ -39,6 +40,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from connection_manager import (
+    connection_manager,
+    validate_webhook_destination,
+)
 
 # -----------------------------------------------------------------------------
 # Configuration
@@ -75,6 +81,24 @@ settings = Settings()
 MEDIA_PATH = Path(settings.media_dir).resolve()
 MEDIA_PATH.mkdir(parents=True, exist_ok=True)
 
+# Callback to dynamically update settings when Cloudflare Tunnel URL changes
+def on_tunnel_url_updated(url: str) -> None:
+    settings.public_base_url = url
+    logger.info(f"Dynamically updated settings.public_base_url to: {url}")
+
+connection_manager.settings_callback = on_tunnel_url_updated
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifecycle manager for FastAPI and the background Cloudflare Tunnel."""
+    logger.info("Initializing Backend Connection Manager & Cloudflare Tunnel...")
+    await connection_manager.start_supervision()
+    yield
+    logger.info("Shutting down Backend Connection Manager...")
+    await connection_manager.shutdown()
+
+
 # -----------------------------------------------------------------------------
 # Application Setup & CORS
 # -----------------------------------------------------------------------------
@@ -83,6 +107,7 @@ app = FastAPI(
     title="Motivational Shorts Studio API",
     description="Backend service for generating motivational YouTube Shorts with FFmpeg and n8n",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 allowed_origins_list = [origin.strip() for origin in settings.allowed_origins.split(",") if origin.strip()]
@@ -137,12 +162,14 @@ def is_ip_blocked(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
 
 
 def get_public_base_url(request: Optional[Request] = None) -> str:
-    """Return configured PUBLIC_BASE_URL, or deduce dynamically from reverse proxy/tunnel headers."""
+    """Return dynamic tunnel header URL if request arrived via tunnel, or active tunnel URL, or configured setting."""
     if request:
         proto = request.headers.get("x-forwarded-proto") or request.url.scheme
         host = request.headers.get("x-forwarded-host") or request.headers.get("host")
         if host and ("trycloudflare.com" in host or "ngrok" in host):
             return f"{proto}://{host}"
+    if connection_manager.active_tunnel_url:
+        return connection_manager.active_tunnel_url.rstrip("/")
     return settings.public_base_url.rstrip("/")
 
 
@@ -405,6 +432,10 @@ class HealthResponse(BaseModel):
 class WebhookProxyRequest(BaseModel):
     webhookUrl: str = Field(..., description="Target n8n webhook URL")
     payload: Dict[str, Any] = Field(..., description="Short payload to forward to n8n webhook")
+
+
+class WebhookVerifyRequest(BaseModel):
+    webhookUrl: str = Field(..., description="Target webhook URL to verify")
 
 
 # -----------------------------------------------------------------------------
@@ -956,6 +987,63 @@ async def health_check(request: Request) -> HealthResponse:
     )
 
 
+@app.get(
+    "/api/connection/status",
+    summary="Get real-time backend and Cloudflare tunnel connection status",
+)
+async def api_connection_status() -> Any:
+    """Return backend status, active tunnel URL, and health state."""
+    return connection_manager.get_status()
+
+
+@app.post(
+    "/api/connection/retry",
+    summary="Trigger immediate Cloudflare tunnel reconnect and health verification",
+)
+async def api_connection_retry(request: Request) -> Any:
+    """Trigger manual reconnection and verification of the Cloudflare tunnel."""
+    return await connection_manager.trigger_reconnect()
+
+
+@app.post(
+    "/api/connection/verify-webhook",
+    summary="Test connectivity to n8n webhook URL",
+)
+async def api_verify_webhook(req: WebhookVerifyRequest) -> Any:
+    """Validate webhook URL and verify reachability."""
+    is_safe, reason = validate_webhook_destination(req.webhookUrl)
+    if not is_safe:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Webhook destination validation failed: {reason}",
+        )
+
+    timeout = httpx.Timeout(connect=10.0, read=15.0, write=10.0, pool=5.0)
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+        try:
+            resp = await client.head(req.webhookUrl)
+            return {
+                "success": True,
+                "statusCode": resp.status_code,
+                "message": f"Webhook endpoint is reachable (HTTP {resp.status_code}).",
+            }
+        except Exception:
+            pass
+        try:
+            resp = await client.get(req.webhookUrl)
+            return {
+                "success": True,
+                "statusCode": resp.status_code,
+                "message": f"Webhook endpoint is reachable (HTTP {resp.status_code}).",
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "statusCode": 0,
+                "message": f"Could not reach webhook: {str(e)}",
+            }
+
+
 @app.post(
     "/api/webhook/proxy",
     summary="Forward request to n8n webhook (eliminates browser CORS issues)",
@@ -969,8 +1057,16 @@ async def api_proxy_webhook(req: WebhookProxyRequest, request: Request) -> Any:
             detail="Invalid webhook URL. Must start with http:// or https:// with a valid hostname.",
         )
 
+    # Validate destination safety (SSRF protection)
+    is_safe, reason = validate_webhook_destination(req.webhookUrl)
+    if not is_safe:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Webhook destination rejected: {reason}",
+        )
+
     payload = dict(req.payload)
-    base_url = get_public_base_url(request)
+    base_url = connection_manager.active_tunnel_url or get_public_base_url(request)
     if "fastApiBaseUrl" not in payload or not payload["fastApiBaseUrl"] or "localhost" in str(payload.get("fastApiBaseUrl", "")):
         payload["fastApiBaseUrl"] = base_url
 
