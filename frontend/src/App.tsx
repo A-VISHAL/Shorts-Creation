@@ -18,8 +18,11 @@ import {
   Server,
   Workflow,
   ExternalLink,
-  Wifi,
-  WifiOff,
+  X,
+  Zap,
+  Film,
+  Type,
+  FileText,
 } from 'lucide-react';
 import {
   generateShort,
@@ -51,6 +54,7 @@ const STAGES = [
 
 interface Preset {
   name: string;
+  badge: string;
   videoUrl: string;
   musicUrl: string;
   quote: string;
@@ -61,6 +65,7 @@ interface Preset {
 const PRESETS: Preset[] = [
   {
     name: 'Instant Studio Demo',
+    badge: 'Offline / Instant',
     videoUrl: 'http://localhost:8000/media/dl_video_7a92c74aa4.mp4',
     musicUrl: 'http://localhost:8000/media/test_source_aud.mp3',
     quote: 'Stop waiting and start building your future today.',
@@ -69,6 +74,7 @@ const PRESETS: Preset[] = [
   },
   {
     name: 'YouTube Shorts Demo',
+    badge: 'yt-dlp Pipeline',
     videoUrl: 'https://youtube.com/shorts/Ke6kzNR3NnU',
     musicUrl: 'http://localhost:8000/media/test_source_aud.mp3',
     quote: 'The secret of getting ahead is getting started. Break your goals into daily steps.',
@@ -77,6 +83,7 @@ const PRESETS: Preset[] = [
   },
   {
     name: 'Clean Minimalist',
+    badge: 'Ambient Canvas',
     videoUrl: 'http://localhost:8000/media/test_source_vid.mp4',
     musicUrl: 'http://localhost:8000/media/test_source_aud.mp3',
     quote: 'Your mind is a weapon. Keep it loaded with knowledge and sharp with discipline.',
@@ -218,7 +225,7 @@ export function App() {
   };
 
   const formatLastCheck = (isoDate: string | null | undefined) => {
-    if (!isoDate) return 'Pending initial verification';
+    if (!isoDate) return 'Pending verification';
     try {
       const d = new Date(isoDate);
       return d.toLocaleTimeString();
@@ -234,6 +241,7 @@ export function App() {
     setTitle(preset.title);
     setStyle(preset.style);
     setErrorMessage(null);
+    showToast(`Loaded "${preset.name}" preset`);
   };
 
   const handleGenerate = async (e: React.FormEvent) => {
@@ -281,6 +289,7 @@ export function App() {
       if (data && data.success) {
         setCurrentStageIdx(5); // Ready to preview & download
         setResult(data);
+        showToast('Short rendered successfully!');
       } else {
         setErrorMessage(data?.error?.message || 'Video generation failed. Please check webhook settings.');
       }
@@ -305,246 +314,331 @@ export function App() {
   const isTunnelOk = connectionStatus?.tunnel.status === 'connected';
 
   return (
-    <div>
-      {/* Header */}
-      <header className="header">
-        <div className="header-container">
-          <div className="brand">
-            <div className="brand-icon">
-              <Sparkles size={20} color="#ffffff" />
+    <div className="app-root">
+      {/* ====================================================================
+          TOP APPLICATION HEADER
+          ==================================================================== */}
+      <header className="app-header">
+        <div className="header-inner">
+          <div className="header-brand">
+            <div className="brand-icon-wrap">
+              <Zap size={18} />
             </div>
-            <div>
-              <span className="brand-title">Motivational Shorts Studio</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <span className="brand-name">Motivational Shorts Studio</span>
+              <span className="shorts-badge">9:16 Shorts</span>
             </div>
-            <span className="brand-badge">9:16 Shorts</span>
           </div>
 
-          <div className="header-actions">
-            {/* Live Connection Pill */}
-            <div
-              className={`connection-pill ${isBackendOk && isTunnelOk ? 'ok' : isBackendOk ? 'warn' : 'err'}`}
+          <div className="header-controls">
+            {/* Live Connection Status Pill */}
+            <button
+              type="button"
+              className="status-pill"
               onClick={handleOpenSettings}
               title="Click to view connection details"
             >
-              {isBackendOk && isTunnelOk ? (
-                <>
-                  <Wifi size={13} />
-                  <span>Tunnel Online</span>
-                </>
-              ) : isBackendOk ? (
-                <>
-                  <RefreshCw size={13} className="spinner" />
-                  <span>Connecting Tunnel...</span>
-                </>
-              ) : (
-                <>
-                  <WifiOff size={13} />
-                  <span>Backend Offline</span>
-                </>
-              )}
-            </div>
+              <span
+                className={`status-dot ${
+                  isBackendOk && isTunnelOk ? 'online' : isBackendOk ? 'warning' : 'offline'
+                }`}
+              />
+              <span>
+                {isBackendOk && isTunnelOk
+                  ? 'Tunnel Online'
+                  : isBackendOk
+                  ? 'Connecting Tunnel...'
+                  : 'Backend Offline'}
+              </span>
+            </button>
 
-            {/* Studio Config Button */}
+            {/* Studio Settings Button */}
             <button
-              className="btn-icon"
+              type="button"
+              className="btn-header-config"
               onClick={handleOpenSettings}
               title="Studio Connection & Configuration"
             >
-              <SettingsIcon size={16} />
+              <SettingsIcon size={14} />
               <span>Studio Config</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="main-container">
-        <div className="hero-section">
-          <h1 className="hero-title">Create Inspiring YouTube Shorts in Seconds</h1>
-          <p className="hero-subtitle">
-            Orchestrated with <strong>FastAPI</strong>, <strong>FFmpeg</strong>, and <strong>Cloud n8n</strong>.
-            Transform background footage and soundtracks into 1080 × 1920 vertical Shorts with dynamic overlays.
-          </p>
-        </div>
-
-        {/* Preset Selector */}
-        <div className="card preset-section">
-          <div className="preset-header">
-            <Sparkles size={16} color="#ef4444" />
-            <span className="preset-title">Quick Start Presets</span>
+      {/* ====================================================================
+          MAIN STUDIO WORKSPACE
+          ==================================================================== */}
+      <main className="studio-layout">
+        {/* Workspace Intro Banner */}
+        <div className="workspace-intro">
+          <div className="intro-text">
+            <h1>Create Inspiring YouTube Shorts in Seconds</h1>
+            <p>
+              Transform background footage and soundtracks into 1080 × 1920 vertical Shorts with centered typography overlays and cinematic formatting.
+            </p>
           </div>
-          <div className="preset-grid">
-            {PRESETS.map((p) => (
-              <button
-                key={p.name}
-                type="button"
-                className="preset-btn"
-                onClick={() => applyPreset(p)}
-                disabled={loading}
-              >
-                <strong>{p.name}</strong>
-                <span>{p.quote.slice(0, 50)}...</span>
-              </button>
-            ))}
+          <div className="intro-badges">
+            <span className="engine-tag">
+              <Server size={11} /> FastAPI
+            </span>
+            <span className="engine-tag">
+              <Film size={11} /> FFmpeg 9:16
+            </span>
+            <span className="engine-tag">
+              <Workflow size={11} /> n8n Cloud
+            </span>
           </div>
         </div>
 
-        {/* Studio Workspace */}
-        <div className="workspace-grid">
-          {/* Form Side */}
-          <div className="card">
-            <h2 className="card-title">
-              <Sliders size={18} color="#ef4444" />
-              <span>Short Parameters</span>
-            </h2>
-
+        {/* 2-Column Desktop Grid */}
+        <div className="studio-grid">
+          {/* ================================================================
+              LEFT COLUMN: VIDEO CONFIGURATION FORM
+              ================================================================ */}
+          <div className="form-column">
             <form onSubmit={handleGenerate}>
-              {/* Video URL */}
-              <div className="form-group">
-                <label className="form-label" htmlFor="videoUrl">
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Video size={14} color="#f87171" />
-                    <strong>Background Video URL</strong>
-                  </span>
-                  <span className="form-hint">YouTube or Direct MP4</span>
-                </label>
-                <input
-                  id="videoUrl"
-                  type="url"
-                  className="form-input no-icon"
-                  placeholder="https://www.youtube.com/watch?v=... or http://localhost:8000/media/..."
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  disabled={loading}
-                  required
-                />
+              {/* SECTION A: Quick Start Presets */}
+              <div className="studio-card" style={{ marginBottom: '1.25rem' }}>
+                <div className="card-title-bar">
+                  <div className="card-title-group">
+                    <Sparkles size={16} className="card-title-icon" />
+                    <span className="card-title">Quick Start Presets</span>
+                  </div>
+                  <span className="card-badge-info">Select to prefill</span>
+                </div>
+
+                <div className="presets-grid">
+                  {PRESETS.map((p) => {
+                    const isSelected = videoUrl === p.videoUrl && title === p.title;
+                    return (
+                      <button
+                        key={p.name}
+                        type="button"
+                        className={`preset-card ${isSelected ? 'active' : ''}`}
+                        onClick={() => applyPreset(p)}
+                        disabled={loading}
+                      >
+                        <div className="preset-top">
+                          <span className="preset-name">{p.name}</span>
+                          <span className="preset-indicator" />
+                        </div>
+                        <p className="preset-snippet">{p.quote}</p>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Music URL */}
-              <div className="form-group">
-                <label className="form-label" htmlFor="musicUrl">
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Music size={14} color="#f59e0b" />
-                    <strong>Soundtrack URL</strong>
-                  </span>
-                  <span className="form-hint">Direct MP3 / Audio Stream</span>
-                </label>
-                <input
-                  id="musicUrl"
-                  type="url"
-                  className="form-input no-icon"
-                  placeholder="https://actions.google.com/sounds/v1/ambient/ambient_hum.ogg or http://localhost:8000/media/..."
-                  value={musicUrl}
-                  onChange={(e) => setMusicUrl(e.target.value)}
-                  disabled={loading}
-                  required
-                />
+              {/* SECTION B: Video Sources */}
+              <div className="studio-card" style={{ marginBottom: '1.25rem' }}>
+                <div className="card-title-bar">
+                  <div className="card-title-group">
+                    <Video size={16} className="card-title-icon" />
+                    <span className="card-title">Media Sources</span>
+                  </div>
+                  <span className="card-badge-info">YouTube or Direct Links</span>
+                </div>
+
+                {/* Video URL */}
+                <div className="form-field">
+                  <div className="field-label-row">
+                    <label className="field-label" htmlFor="videoUrl">
+                      <Film size={13} className="field-label-icon" />
+                      <span>Background Video URL</span>
+                    </label>
+                    <span className="field-hint">YouTube Shorts / Direct MP4</span>
+                  </div>
+                  <div className="input-wrapper">
+                    <input
+                      id="videoUrl"
+                      type="url"
+                      className="studio-input"
+                      placeholder="https://youtube.com/shorts/... or http://localhost:8000/media/..."
+                      value={videoUrl}
+                      onChange={(e) => setVideoUrl(e.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Soundtrack URL */}
+                <div className="form-field">
+                  <div className="field-label-row">
+                    <label className="field-label" htmlFor="musicUrl">
+                      <Music size={13} className="field-label-icon" />
+                      <span>Soundtrack URL</span>
+                    </label>
+                    <span className="field-hint">MP3, AAC, OGG or YouTube</span>
+                  </div>
+                  <div className="input-wrapper">
+                    <input
+                      id="musicUrl"
+                      type="url"
+                      className="studio-input"
+                      placeholder="http://localhost:8000/media/test_source_aud.mp3 or audio stream..."
+                      value={musicUrl}
+                      onChange={(e) => setMusicUrl(e.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Motivational Quote */}
-              <div className="form-group">
-                <label className="form-label" htmlFor="quoteText">
-                  <strong>Motivational Quote / Speech</strong>
-                  <span className="form-hint">Centered typography overlay</span>
-                </label>
-                <textarea
-                  id="quoteText"
-                  className="form-textarea"
-                  rows={3}
-                  placeholder="Enter the motivational message displayed dynamically on the canvas..."
-                  value={quoteText}
-                  onChange={(e) => setQuoteText(e.target.value)}
-                  disabled={loading}
-                  required
-                />
-              </div>
+              {/* SECTION C: Content */}
+              <div className="studio-card" style={{ marginBottom: '1.25rem' }}>
+                <div className="card-title-bar">
+                  <div className="card-title-group">
+                    <Type size={16} className="card-title-icon" />
+                    <span className="card-title">Short Content & Typography</span>
+                  </div>
+                  <span className="card-badge-info">Subtitles & Title</span>
+                </div>
 
-              {/* Title & Duration Grid */}
-              <div className="grid-2">
-                <div className="form-group">
-                  <label className="form-label" htmlFor="title">
-                    <strong>Short Title</strong>
-                  </label>
+                {/* Motivational Quote */}
+                <div className="form-field">
+                  <div className="field-label-row">
+                    <label className="field-label" htmlFor="quoteText">
+                      <FileText size={13} className="field-label-icon" />
+                      <span>Motivational Speech / Quote</span>
+                    </label>
+                    <span className="field-hint">Dynamic typography overlay</span>
+                  </div>
+                  <textarea
+                    id="quoteText"
+                    className="studio-textarea"
+                    rows={3}
+                    placeholder="Enter the speech, quote, or key message to burn into the video..."
+                    value={quoteText}
+                    onChange={(e) => setQuoteText(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                  <div className="char-counter">{quoteText.length} characters</div>
+                </div>
+
+                {/* Short Title */}
+                <div className="form-field">
+                  <div className="field-label-row">
+                    <label className="field-label" htmlFor="title">
+                      <span>Short Title</span>
+                    </label>
+                    <span className="field-hint">Used for export filename</span>
+                  </div>
                   <input
                     id="title"
                     type="text"
-                    className="form-input no-icon"
-                    placeholder="Short Title"
+                    className="studio-input"
+                    placeholder="e.g. Build Your Future"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     disabled={loading}
                   />
                 </div>
+              </div>
 
-                <div className="form-group">
-                  <label className="form-label" htmlFor="duration">
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <Clock size={14} color="#3b82f6" />
-                      <strong>Duration: {duration}s</strong>
-                    </span>
-                  </label>
-                  <input
-                    id="duration"
-                    type="range"
-                    min="10"
-                    max="60"
-                    step="5"
-                    className="form-range"
-                    value={duration}
-                    onChange={(e) => setDuration(Number(e.target.value))}
-                    disabled={loading}
-                  />
-                  <div className="range-marks">
-                    <span>10s</span>
-                    <span>30s</span>
-                    <span>60s</span>
+              {/* SECTION D: Video Settings */}
+              <div className="studio-card" style={{ marginBottom: '1.25rem' }}>
+                <div className="card-title-bar">
+                  <div className="card-title-group">
+                    <Sliders size={16} className="card-title-icon" />
+                    <span className="card-title">Video Settings</span>
+                  </div>
+                  <span className="card-badge-info">Canvas Parameters</span>
+                </div>
+
+                {/* Duration Segmented Control */}
+                <div className="form-field">
+                  <div className="field-label-row">
+                    <label className="field-label">
+                      <Clock size={13} className="field-label-icon" />
+                      <span>Target Duration</span>
+                    </label>
+                    <span className="field-hint">Standard Shorts lengths</span>
+                  </div>
+                  <div className="segmented-control">
+                    {[10, 30, 60].map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        className={`segmented-btn ${duration === d ? 'active' : ''}`}
+                        onClick={() => setDuration(d)}
+                        disabled={loading}
+                      >
+                        <span>{d}s</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Visual Typography Style Selector */}
+                <div className="form-field" style={{ marginTop: '1rem' }}>
+                  <div className="field-label-row">
+                    <label className="field-label">
+                      <Layers size={13} className="field-label-icon" />
+                      <span>Visual Typography Style</span>
+                    </label>
+                    <span className="field-hint">Subtitles appearance</span>
+                  </div>
+                  <div className="style-grid">
+                    <div
+                      className={`style-card ${style === 'dark-motivational' ? 'selected' : ''}`}
+                      onClick={() => setStyle('dark-motivational')}
+                    >
+                      <div className="style-card-header">
+                        <span className="style-title">Cinematic Dark</span>
+                        <div className="style-radio">
+                          {style === 'dark-motivational' && <div className="style-radio-inner" />}
+                        </div>
+                      </div>
+                      <span className="style-desc">Gold bold highlights, heavy backdrop vignette</span>
+                    </div>
+
+                    <div
+                      className={`style-card ${style === 'minimal-white' ? 'selected' : ''}`}
+                      onClick={() => setStyle('minimal-white')}
+                    >
+                      <div className="style-card-header">
+                        <span className="style-title">Clean Minimal</span>
+                        <div className="style-radio">
+                          {style === 'minimal-white' && <div className="style-radio-inner" />}
+                        </div>
+                      </div>
+                      <span className="style-desc">Sharp white typography with clean black outline</span>
+                    </div>
+
+                    <div
+                      className={`style-card ${style === 'bold-motivational' ? 'selected' : ''}`}
+                      onClick={() => setStyle('bold-motivational')}
+                    >
+                      <div className="style-card-header">
+                        <span className="style-title">High Impact</span>
+                        <div className="style-radio">
+                          {style === 'bold-motivational' && <div className="style-radio-inner" />}
+                        </div>
+                      </div>
+                      <span className="style-desc">Vibrant red accent title and bold text cards</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Style Presets */}
-              <div className="form-group">
-                <label className="form-label">
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Layers size={14} color="#a855f7" />
-                    <strong>Visual Typography Style</strong>
-                  </span>
-                </label>
-                <div className="style-grid">
-                  <div
-                    className={`style-option ${style === 'dark-motivational' ? 'selected' : ''}`}
-                    onClick={() => setStyle('dark-motivational')}
-                  >
-                    <div className="style-name">Cinematic Dark</div>
-                    <div className="style-desc">Gold bold highlights, heavy backdrop vignette</div>
-                  </div>
-                  <div
-                    className={`style-option ${style === 'minimal-white' ? 'selected' : ''}`}
-                    onClick={() => setStyle('minimal-white')}
-                  >
-                    <div className="style-name">Clean Minimalist</div>
-                    <div className="style-desc">Sharp white typography with clean black outline</div>
-                  </div>
-                  <div
-                    className={`style-option ${style === 'bold-motivational' ? 'selected' : ''}`}
-                    onClick={() => setStyle('bold-motivational')}
-                  >
-                    <div className="style-name">High Impact</div>
-                    <div className="style-desc">Vibrant red accent title and bold text cards</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button type="submit" className="btn-primary" disabled={loading}>
+              {/* SECTION E: Generation Trigger */}
+              <button
+                type="submit"
+                className="btn-generate"
+                disabled={loading}
+              >
                 {loading ? (
                   <>
                     <RefreshCw size={18} className="spinner" />
-                    <span>Rendering Short ({duration}s)...</span>
+                    <span>Rendering Short ({currentStageIdx + 1}/6)...</span>
                   </>
                 ) : (
                   <>
-                    <Play size={18} fill="currentColor" />
+                    <Sparkles size={18} />
                     <span>Generate Motivational Short</span>
                   </>
                 )}
@@ -552,437 +646,415 @@ export function App() {
 
               {/* Error Banner */}
               {errorMessage && (
-                <div className="error-banner">
-                  <AlertCircle size={20} color="#f87171" style={{ flexShrink: 0 }} />
+                <div className="alert-error">
+                  <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
                   <div>
-                    <strong>Pipeline Execution Failed</strong>
-                    <p style={{ whiteSpace: 'pre-wrap', marginTop: '0.25rem', fontSize: '0.8rem' }}>
-                      {errorMessage}
-                    </p>
+                    <div className="alert-error-title">Generation Pipeline Notice</div>
+                    <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.45 }}>{errorMessage}</p>
                   </div>
                 </div>
               )}
             </form>
           </div>
 
-          {/* Preview / Results Side */}
-          <div className="card">
-            <h2 className="card-title">
-              <Play size={18} color="#ef4444" />
-              <span>9:16 Shorts Canvas Preview</span>
-            </h2>
-
-            {/* Workflow Progress Tracker */}
-            {loading && (
-              <div className="progress-container">
-                <div className="progress-header">
-                  <span className="progress-title">Pipeline Stage: {currentStageIdx + 1} of 6</span>
-                  <span className="progress-pct">{Math.round(((currentStageIdx + 1) / 6) * 100)}%</span>
+          {/* ================================================================
+              RIGHT COLUMN: LIVE 9:16 CANVAS PREVIEW
+              ================================================================ */}
+          <div className="preview-column">
+            <div className="preview-container-card">
+              <div className="preview-top-bar">
+                <div className="preview-heading">
+                  <Play size={16} color="#ef4444" />
+                  <span>Shorts Canvas Preview</span>
                 </div>
-                <div className="progress-bar-bg">
-                  <div
-                    className="progress-bar-fill"
-                    style={{ width: `${((currentStageIdx + 1) / 6) * 100}%` }}
-                  />
-                </div>
-                <ul className="stage-list">
-                  {STAGES.map((s, idx) => (
-                    <li
-                      key={s}
-                      className={`stage-item ${idx < currentStageIdx ? 'completed' : idx === currentStageIdx ? 'active' : ''}`}
-                    >
-                      {idx < currentStageIdx ? (
-                        <CheckCircle2 size={15} color="#34d399" />
-                      ) : idx === currentStageIdx ? (
-                        <RefreshCw size={15} className="spinner" color="#60a5fa" />
-                      ) : (
-                        <div className="stage-dot" />
-                      )}
-                      <span>{s}</span>
-                    </li>
-                  ))}
-                </ul>
+                <span className="resolution-pill">1080 × 1920 MP4</span>
               </div>
-            )}
 
-            {/* Vertical Video Mockup */}
-            <div className="mockup-wrapper">
-              <div className="phone-bezel">
+              {/* Centered Phone Bezel Frame */}
+              <div className="canvas-frame">
+                <div className="phone-notch" />
+
+                {/* Loading Progress Tracker Overlay */}
+                {loading && (
+                  <div className="progress-overlay">
+                    <div className="progress-pct-huge">
+                      {Math.round(((currentStageIdx + 1) / 6) * 100)}%
+                    </div>
+                    <div className="progress-track-bg">
+                      <div
+                        className="progress-track-fill"
+                        style={{ width: `${((currentStageIdx + 1) / 6) * 100}%` }}
+                      />
+                    </div>
+                    <ul className="stage-tracker-list">
+                      {STAGES.map((s, idx) => (
+                        <li
+                          key={s}
+                          className={`stage-step-row ${
+                            idx < currentStageIdx ? 'completed' : idx === currentStageIdx ? 'active' : ''
+                          }`}
+                        >
+                          <span className="step-indicator">
+                            {idx < currentStageIdx ? (
+                              <CheckCircle2 size={13} color="#10b981" />
+                            ) : idx === currentStageIdx ? (
+                              <RefreshCw size={13} className="spinner" color="#60a5fa" />
+                            ) : (
+                              <div
+                                style={{
+                                  width: '5px',
+                                  height: '5px',
+                                  borderRadius: '50%',
+                                  background: 'rgba(255, 255, 255, 0.2)',
+                                }}
+                              />
+                            )}
+                          </span>
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Rendered Video Player or Empty Canvas */}
                 {result?.videoUrl ? (
                   <video
                     src={result.videoUrl}
                     controls
                     autoPlay
+                    loop
                     playsInline
-                    className="phone-video"
+                    className="active-short-video"
                   />
                 ) : (
-                  <div className="phone-placeholder">
-                    <div className="phone-inner-text">
-                      <Sparkles size={32} color="#64748b" style={{ margin: '0 auto 1rem auto' }} />
-                      <p style={{ fontWeight: 600, color: '#94a3b8' }}>1080 × 1920 Vertical Canvas</p>
-                      <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', color: '#64748b' }}>
-                        Rendered Short with subtitles & music will appear here.
-                      </p>
+                  <div className="canvas-empty-state">
+                    <div className="canvas-empty-icon">
+                      <Sparkles size={24} />
                     </div>
+                    <span className="canvas-empty-title">9:16 Vertical Canvas</span>
+                    <p className="canvas-empty-desc">
+                      Rendered video with centered typography, background score, and cinematic overlay will appear here.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Render Success Actions Bar */}
+              {result?.success && Boolean(result.videoUrl || result.downloadUrl) && (
+                <div className="render-success-bar">
+                  <div className="success-meta-row">
+                    <CheckCircle2 size={15} color="#10b981" style={{ flexShrink: 0 }} />
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      Render Complete: <strong>{result.title || title || 'Motivational Short'}</strong> ({result.durationSeconds || duration}s)
+                    </span>
+                  </div>
+
+                  <div className="action-btn-group">
+                    <a
+                      href={result.downloadUrl || result.videoUrl || '#'}
+                      download={`${(result.title || title || 'Motivational_Short').replace(/\s+/g, '_')}.mp4`}
+                      className="btn-action-primary"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Download size={15} />
+                      <span>Download MP4</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      className="btn-action-secondary"
+                      onClick={handleCopyUrl}
+                    >
+                      {copied ? <Check size={15} color="#10b981" /> : <Copy size={15} />}
+                      <span>{copied ? 'Copied' : 'Copy URL'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* ====================================================================
+          STUDIO CONFIGURATION MODAL (CENTERED DIALOG)
+          ==================================================================== */}
+      {showSettings && (
+        <div className="modal-overlay" onClick={() => setShowSettings(false)}>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Top Header */}
+            <div className="modal-top">
+              <div className="modal-title-group">
+                <SettingsIcon size={18} color="#ef4444" />
+                <h3 className="modal-heading">Studio Configuration</h3>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setShowSettings(false)}
+                title="Close settings"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="modal-content-area">
+              {configError && (
+                <div className="alert-error" style={{ margin: 0 }}>
+                  <AlertCircle size={16} />
+                  <span>{configError}</span>
+                </div>
+              )}
+
+              {/* Section 1: Backend Connection & Cloudflare Tunnel */}
+              <div className="config-section-card">
+                <div className="config-section-header">
+                  <span className="section-label">
+                    <Server size={15} color="#38bdf8" />
+                    <span>Backend Connection & Cloudflare Tunnel</span>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-sm-action"
+                    onClick={handleRetryConnection}
+                    disabled={retryingTunnel}
+                  >
+                    <RefreshCw size={11} className={retryingTunnel ? 'spinner' : ''} />
+                    <span>{retryingTunnel ? 'Reconnecting...' : 'Retry Connection'}</span>
+                  </button>
+                </div>
+
+                <div className="status-two-col">
+                  {/* FastAPI Backend Status */}
+                  <div className="status-mini-card">
+                    <div className="mini-card-label">FastAPI Backend (Port 8000)</div>
+                    <div>
+                      {connectionStatus?.backend.status === 'online' ? (
+                        <span className="badge-state ok">
+                          <Check size={11} /> Online
+                        </span>
+                      ) : connectionStatus?.backend.status === 'starting' ? (
+                        <span className="badge-state warn">
+                          <RefreshCw size={11} className="spinner" /> Starting...
+                        </span>
+                      ) : (
+                        <span className="badge-state err">
+                          <AlertCircle size={11} /> Offline
+                        </span>
+                      )}
+                      {health && (
+                        <div style={{ fontSize: '0.66rem', color: 'var(--text-tertiary)', marginTop: '0.3rem' }}>
+                          v{health.version} • FFmpeg {health.dependencies.ffmpeg ? '✓' : '✗'} • yt-dlp {health.dependencies.yt_dlp ? '✓' : '✗'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Cloudflare Tunnel Status */}
+                  <div className="status-mini-card">
+                    <div className="mini-card-label">Cloudflare Quick Tunnel</div>
+                    <div>
+                      {connectionStatus?.tunnel.status === 'connected' ? (
+                        <span className="badge-state ok">
+                          <Check size={11} /> Connected
+                        </span>
+                      ) : connectionStatus?.tunnel.status === 'connecting' ? (
+                        <span className="badge-state warn">
+                          <RefreshCw size={11} className="spinner" /> Connecting...
+                        </span>
+                      ) : (
+                        <span className="badge-state err">
+                          <AlertCircle size={11} /> Disconnected
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active Public Tunnel URL */}
+                {connectionStatus?.tunnel.url && (
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginBottom: '0.25rem' }}>
+                      Active Public Tunnel URL (Auto-forwarded to cloud n8n):
+                    </div>
+                    <div className="tunnel-url-field">
+                      <input
+                        type="text"
+                        readOnly
+                        className="tunnel-input-readonly"
+                        value={connectionStatus.tunnel.url}
+                      />
+                      <button
+                        type="button"
+                        className="btn-sm-action"
+                        onClick={() => handleCopyTunnelUrl(connectionStatus.tunnel.url!)}
+                        title="Copy Tunnel URL"
+                      >
+                        <Copy size={12} />
+                        <span>{copiedTunnel ? 'Copied' : 'Copy'}</span>
+                      </button>
+                      <a
+                        href={connectionStatus.tunnel.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-sm-action"
+                        title="Open in new tab"
+                      >
+                        <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+                {/* Metadata & Proxy Badge */}
+                <div style={{ marginTop: '0.75rem', fontSize: '0.68rem', color: 'var(--text-tertiary)', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span>Health Check: {formatLastCheck(connectionStatus?.tunnel.lastHealthCheck)}</span>
+                  <span>•</span>
+                  <span>Auto-Reconnect: Active</span>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: '0.75rem',
+                    padding: '0.55rem 0.75rem',
+                    borderRadius: '6px',
+                    background: 'rgba(16, 185, 129, 0.08)',
+                    border: '1px solid rgba(16, 185, 129, 0.2)',
+                    fontSize: '0.72rem',
+                    color: '#34d399',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                  }}
+                >
+                  <ShieldCheck size={14} style={{ flexShrink: 0 }} />
+                  <span>
+                    <strong>Backend Proxy Mode:</strong> Webhook requests route server-side through local FastAPI to bypass browser CORS preflight restrictions.
+                  </span>
+                </div>
+              </div>
+
+              {/* Section 2: n8n Workflow Configuration */}
+              <div className="config-section-card">
+                <div className="config-section-header">
+                  <span className="section-label">
+                    <Workflow size={15} color="#ef4444" />
+                    <span>n8n Webhook Endpoint</span>
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-sm-action"
+                    onClick={handleVerifyWebhook}
+                    disabled={verifyingWebhook || !modalWebhookUrl.trim()}
+                  >
+                    <RefreshCw size={11} className={verifyingWebhook ? 'spinner' : ''} />
+                    <span>{verifyingWebhook ? 'Verifying...' : 'Verify Endpoint'}</span>
+                  </button>
+                </div>
+
+                <input
+                  type="url"
+                  className="studio-input"
+                  value={modalWebhookUrl}
+                  onChange={(e) => {
+                    setModalWebhookUrl(e.target.value);
+                    setWebhookVerifyResult(null);
+                  }}
+                  placeholder="https://your-n8n-instance.app.n8n.cloud/webhook/generate-motivational-short"
+                  required
+                />
+
+                {/* Quick Switch Chips */}
+                <div className="chips-row">
+                  <button
+                    type="button"
+                    className="chip-btn"
+                    onClick={() => {
+                      setModalWebhookUrl(config.productionWebhookUrl || DEFAULT_CONFIG.productionWebhookUrl);
+                      setWebhookVerifyResult(null);
+                    }}
+                  >
+                    Cloud Production
+                  </button>
+                  <button
+                    type="button"
+                    className="chip-btn"
+                    onClick={() => {
+                      setModalWebhookUrl(config.testWebhookUrl || DEFAULT_CONFIG.testWebhookUrl);
+                      setWebhookVerifyResult(null);
+                    }}
+                  >
+                    Cloud Test
+                  </button>
+                  <button
+                    type="button"
+                    className="chip-btn"
+                    onClick={() => {
+                      setModalWebhookUrl('http://localhost:5678/webhook/generate-motivational-short');
+                      setWebhookVerifyResult(null);
+                    }}
+                  >
+                    Local n8n
+                  </button>
+                </div>
+
+                {/* Verification Feedback */}
+                {webhookVerifyResult && (
+                  <div
+                    style={{
+                      marginTop: '0.65rem',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: '6px',
+                      fontSize: '0.74rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      background: webhookVerifyResult.success ? 'rgba(16, 185, 129, 0.1)' : 'rgba(244, 63, 94, 0.1)',
+                      border: webhookVerifyResult.success ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(244, 63, 94, 0.3)',
+                      color: webhookVerifyResult.success ? '#34d399' : '#f87171',
+                    }}
+                  >
+                    {webhookVerifyResult.success ? <Check size={13} /> : <AlertCircle size={13} />}
+                    <span>{webhookVerifyResult.message}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Success Actions */}
-            {result?.success && Boolean(result.videoUrl || result.downloadUrl) && (
-              <div className="result-actions">
-                <div className="result-meta">
-                  <CheckCircle2 size={18} color="#34d399" />
-                  <span>
-                    Render Complete: <strong>{result.title || title || 'Motivational Short'}</strong> ({result.durationSeconds || duration || 30}s, 1080×1920 MP4)
-                  </span>
-                </div>
-
-                <div className="result-btn-row">
-                  <a
-                    href={result.downloadUrl || result.videoUrl || '#'}
-                    download={`${(result.title || title || 'Motivational_Short').replace(/\s+/g, '_')}.mp4`}
-                    className="btn-download"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Download size={16} />
-                    <span>Download MP4</span>
-                  </a>
-
-                  <button type="button" className="btn-copy" onClick={handleCopyUrl}>
-                    {copied ? <Check size={16} color="#34d399" /> : <Copy size={16} />}
-                    <span>{copied ? 'Copied' : 'Copy Public URL'}</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
-
-      {/* Studio Configuration Modal */}
-      {showSettings && (
-        <div className="modal-backdrop">
-          <div className="modal-card" style={{ maxWidth: '640px' }}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <SettingsIcon size={20} color="#ef4444" />
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Studio Connection & Configuration</h3>
-              </div>
+            {/* Modal Bottom Buttons */}
+            <div className="modal-bottom">
               <button
                 type="button"
-                className="modal-close"
-                onClick={() => setShowSettings(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            {configError && (
-              <div className="error-banner" style={{ marginBottom: '1rem' }}>
-                <AlertCircle size={16} color="#f87171" />
-                <span>{configError}</span>
-              </div>
-            )}
-
-            {/* Section 1: Backend Connection Status (Redesigned) */}
-            <div className="connection-card">
-              <div className="connection-header">
-                <div className="connection-title-row">
-                  <Server size={18} color="#38bdf8" />
-                  <div>
-                    <strong style={{ fontSize: '0.9rem' }}>Backend Connection & Cloudflare Tunnel</strong>
-                    <div className="connection-subtitle">
-                      Self-managed local FastAPI backend & public quick tunnel for cloud n8n
-                    </div>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="btn-retry"
-                  onClick={handleRetryConnection}
-                  disabled={retryingTunnel}
-                >
-                  <RefreshCw size={12} className={retryingTunnel ? 'spinner' : ''} />
-                  <span>{retryingTunnel ? 'Reconnecting...' : 'Retry Connection'}</span>
-                </button>
-              </div>
-
-              {/* Status Grid */}
-              <div className="status-grid">
-                {/* FastAPI Backend */}
-                <div className="status-box">
-                  <div className="status-label">FastAPI Backend</div>
-                  <div>
-                    {connectionStatus?.backend.status === 'online' ? (
-                      <span className="badge badge-ok">
-                        <Check size={12} /> Online (Port 8000)
-                      </span>
-                    ) : connectionStatus?.backend.status === 'starting' ? (
-                      <span className="badge badge-warn">
-                        <RefreshCw size={12} className="spinner" /> Starting...
-                      </span>
-                    ) : (
-                      <span className="badge badge-err">
-                        <AlertCircle size={12} /> Offline
-                      </span>
-                    )}
-                    {health && (
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                        v{health.version} • FFmpeg {health.dependencies.ffmpeg ? '✓' : '✗'} • yt-dlp {health.dependencies.yt_dlp ? '✓' : '✗'}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Cloudflare Tunnel */}
-                <div className="status-box">
-                  <div className="status-label">Cloudflare Quick Tunnel</div>
-                  <div>
-                    {connectionStatus?.tunnel.status === 'connected' ? (
-                      <span className="badge badge-ok">
-                        <Check size={12} /> Connected
-                      </span>
-                    ) : connectionStatus?.tunnel.status === 'connecting' ? (
-                      <span className="badge badge-warn">
-                        <RefreshCw size={12} className="spinner" /> Connecting...
-                      </span>
-                    ) : (
-                      <span className="badge badge-err">
-                        <AlertCircle size={12} /> Disconnected
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Active Tunnel URL (Read-only + Copy Action) */}
-              {connectionStatus?.tunnel.url && (
-                <div className="tunnel-url-box">
-                  <div className="tunnel-url-label">
-                    <span>Active Public Tunnel URL (Auto-forwarded to n8n)</span>
-                    {copiedTunnel && (
-                      <span style={{ color: '#34d399', fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                        <Check size={12} /> Copied!
-                      </span>
-                    )}
-                  </div>
-                  <div className="tunnel-url-row">
-                    <input
-                      type="text"
-                      readOnly
-                      className="tunnel-url-input"
-                      value={connectionStatus.tunnel.url}
-                    />
-                    <button
-                      type="button"
-                      className="btn-copy-sm"
-                      onClick={() => handleCopyTunnelUrl(connectionStatus.tunnel.url!)}
-                      title="Copy Public Tunnel URL"
-                    >
-                      <Copy size={13} />
-                      <span>Copy</span>
-                    </button>
-                    <a
-                      href={connectionStatus.tunnel.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-open-sm"
-                      title="Open tunnel URL in new tab"
-                    >
-                      <ExternalLink size={13} />
-                    </a>
-                  </div>
-                </div>
-              )}
-
-              {/* Tunnel Metadata & Status */}
-              <div className="tunnel-meta">
-                <span>
-                  <strong>Last Health Check:</strong> {formatLastCheck(connectionStatus?.tunnel.lastHealthCheck)}
-                </span>
-                <span>•</span>
-                <span>
-                  <strong>Auto-Reconnect:</strong> Active
-                </span>
-                {connectionStatus?.tunnel.reconnectAttempts ? (
-                  <>
-                    <span>•</span>
-                    <span>Retries: {connectionStatus.tunnel.reconnectAttempts}</span>
-                  </>
-                ) : null}
-              </div>
-
-              {/* Warning if cloudflared binary is not detected */}
-              {connectionStatus && !connectionStatus.tunnel.cloudflaredInstalled && (
-                <div className="alert-box-warning">
-                  <AlertCircle size={16} color="#fbbf24" style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <strong>'cloudflared' command not found on your system.</strong>
-                    <p style={{ marginTop: '0.25rem' }}>
-                      To allow cloud n8n to call back into your local render backend, install cloudflared:
-                    </p>
-                    <code>{connectionStatus.tunnel.installInfo?.command || 'sudo curl -L ...'}</code>
-                  </div>
-                </div>
-              )}
-
-              {/* Automatic Proxy Notice */}
-              <div className="proxy-notice">
-                <ShieldCheck size={14} color="#34d399" style={{ flexShrink: 0 }} />
-                <span>
-                  <strong>Backend Proxy Mode:</strong> Automatically active. Webhook calls route through local FastAPI to bypass browser CORS and forward the public tunnel URL automatically.
-                </span>
-              </div>
-            </div>
-
-            {/* Section 2: n8n Workflow Webhooks */}
-            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                <label className="form-label" htmlFor="modalWebhook" style={{ marginBottom: 0 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <Workflow size={15} color="#ef4444" />
-                    <strong>n8n Webhook Endpoint</strong>
-                  </span>
-                </label>
-                <button
-                  type="button"
-                  className="btn-verify-webhook"
-                  onClick={handleVerifyWebhook}
-                  disabled={verifyingWebhook || !modalWebhookUrl.trim()}
-                >
-                  <RefreshCw size={12} className={verifyingWebhook ? 'spinner' : ''} />
-                  <span>{verifyingWebhook ? 'Testing...' : 'Verify Webhook'}</span>
-                </button>
-              </div>
-
-              <input
-                id="modalWebhook"
-                type="url"
-                className="form-input no-icon"
-                value={modalWebhookUrl}
-                onChange={(e) => {
-                  setModalWebhookUrl(e.target.value);
-                  setWebhookVerifyResult(null);
-                }}
-                placeholder="https://your-n8n-instance.app.n8n.cloud/webhook/generate-motivational-short"
-                required
-              />
-
-              {/* Quick Preset Buttons */}
-              <div style={{ marginTop: '0.4rem', display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#f87171',
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                  }}
-                  onClick={() => {
-                    setModalWebhookUrl(config.productionWebhookUrl || DEFAULT_CONFIG.productionWebhookUrl);
-                    setWebhookVerifyResult(null);
-                  }}
-                >
-                  Cloud Production Webhook
-                </button>
-                <button
-                  type="button"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#60a5fa',
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                  }}
-                  onClick={() => {
-                    setModalWebhookUrl(config.testWebhookUrl || DEFAULT_CONFIG.testWebhookUrl);
-                    setWebhookVerifyResult(null);
-                  }}
-                >
-                  Cloud Test Webhook
-                </button>
-                <button
-                  type="button"
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#cbd5e1',
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                  }}
-                  onClick={() => {
-                    setModalWebhookUrl('http://localhost:5678/webhook/generate-motivational-short');
-                    setWebhookVerifyResult(null);
-                  }}
-                >
-                  Local n8n Webhook
-                </button>
-              </div>
-
-              {/* Verification Result Feedback */}
-              {webhookVerifyResult && (
-                <div
-                  style={{
-                    marginTop: '0.5rem',
-                    padding: '0.5rem 0.75rem',
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    background: webhookVerifyResult.success ? 'rgba(52, 211, 153, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                    border: webhookVerifyResult.success ? '1px solid rgba(52, 211, 153, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
-                    color: webhookVerifyResult.success ? '#34d399' : '#f87171',
-                  }}
-                >
-                  {webhookVerifyResult.success ? <Check size={14} /> : <AlertCircle size={14} />}
-                  <span>{webhookVerifyResult.message}</span>
-                </div>
-              )}
-
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-                <strong>Workflow Node:</strong> Receives your generation payload and triggers the n8n orchestrator pipeline.
-              </p>
-            </div>
-
-            {/* Modal Buttons */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={handleSaveSettings}
-              >
-                Save & Close
-              </button>
-              <button
-                type="button"
-                className="btn-secondary"
-                style={{ width: 'auto', whiteSpace: 'nowrap' }}
+                className="btn-action-secondary"
                 onClick={handleResetSettings}
               >
                 Reset to Defaults
+              </button>
+              <button
+                type="button"
+                className="btn-action-primary"
+                style={{ background: 'var(--accent-red)', color: '#ffffff' }}
+                onClick={handleSaveSettings}
+              >
+                Save & Close
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Persistent Toast */}
+      {/* Persistent Toast Notification */}
       {toastMessage && (
-        <div className="toast-msg">
-          <CheckCircle2 size={16} color="#34d399" />
+        <div className="studio-toast">
+          <CheckCircle2 size={16} color="#10b981" />
           <span>{toastMessage}</span>
         </div>
       )}
     </div>
   );
 }
+
 export default App;
