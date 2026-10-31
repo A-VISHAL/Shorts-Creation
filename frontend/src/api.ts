@@ -287,8 +287,16 @@ export async function generateShort(
     data = { ...data, ...data.json };
   }
 
-  const isFailed = !response.ok || data.success === false || data.status === 'failed' || (data.error && typeof data.error === 'object');
+  const hasNoVideo = data.success === true && !data.videoUrl && !data.downloadUrl;
+  const isFailed = !response.ok || data.success === false || data.status === 'failed' || hasNoVideo || (data.error && typeof data.error === 'object');
   if (isFailed) {
+    if (hasNoVideo) {
+      throw new Error(
+        'The n8n webhook responded, but no video output URL was returned.\n\n' +
+        'Hint: Ensure the n8n workflow has the FFmpeg Render node connected and that your Cloudflare tunnel is reachable so n8n can trigger rendering.'
+      );
+    }
+
     const errorObj = typeof data.error === 'object' && data.error !== null ? data.error : {};
     const errorMsg =
       (typeof data.error === 'string' ? data.error : errorObj.message) ||

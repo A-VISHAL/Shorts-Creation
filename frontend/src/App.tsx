@@ -631,7 +631,7 @@ export function App() {
             </div>
 
             {/* Success Actions */}
-            {result?.success && (
+            {result?.success && Boolean(result.videoUrl || result.downloadUrl) && (
               <div className="result-actions">
                 <div className="result-meta">
                   <CheckCircle2 size={18} color="#34d399" />
