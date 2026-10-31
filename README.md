@@ -86,13 +86,34 @@ motivational-shorts-studio/
 │   ├── generate-response-error.json   # Sample error response
 │   ├── media-download-request.json    # Sample media download request
 │   └── media-download-response.json   # Sample media download response
+├── start.bat                  # Universal cross-platform launcher (Windows CMD & Linux Bash) with drag & drop
+├── stop.bat                   # Universal shutdown script for backend & frontend servers (ports 8000 & 5173)
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## 3. Quick Start: Coordinated Development with Cloudflare Tunnel
+## 3. Quick Start & Drag-and-Drop (`start.bat` & `stop.bat`)
+
+You can start the entire studio across both **Windows** and **Linux** with **`start.bat`**:
+
+1. **Normal Start:**
+   - **Windows:** Double-click `start.bat`.
+   - **Linux:** Run `./start.bat` in your terminal or double-click to execute.
+   - Automatically verifies Python, prepares virtual environment, installs dependencies, verifies Node/npm packages, starts FastAPI backend (port 8000) and Vite frontend (port 5173), and opens `http://localhost:5173` in your browser.
+
+2. **Drag & Drop Media Launch:**
+   - **Windows:** Drag any video (`.mp4`, `.mov`, `.mkv`, `.webm`) or audio (`.mp3`, `.wav`, `.m4a`) file onto the **`start.bat`** file icon.
+   - **Linux:** Pass files as arguments: `./start.bat /path/to/video.mp4`
+   - Automatically imports media into `backend/media/`, copies the local serving URL (e.g. `http://localhost:8000/media/video.mp4`) to your clipboard, and launches the Studio!
+
+3. **Clean Shutdown:**
+   - Double-click **`stop.bat`** (or `./stop.bat`) or choose `[S]` in the interactive launcher menu to terminate background servers.
+
+---
+
+## 4. Linux / macOS Quick Start: Coordinated Development with Tunnel
 
 To start the complete environment with a single command (verifies FastAPI, Vite, and starts the Cloudflare Tunnel):
 
