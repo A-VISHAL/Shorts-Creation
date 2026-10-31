@@ -23,7 +23,9 @@ import {
   FileText,
   Sun,
   Moon,
+  FileSpreadsheet,
 } from 'lucide-react';
+import { GoogleSheetsMode } from './GoogleSheetsMode';
 import {
   generateShort,
   fetchHealth,
@@ -107,6 +109,16 @@ export function App() {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('shorts_theme', theme);
   }, [theme]);
+
+  // Active Mode State (Manual Mode vs. Google Sheets Mode)
+  const [activeMode, setActiveMode] = useState<'manual' | 'sheets'>(() => {
+    const saved = localStorage.getItem('shorts_studio_mode');
+    return saved === 'sheets' ? 'sheets' : 'manual';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('shorts_studio_mode', activeMode);
+  }, [activeMode]);
 
   // Configuration State (persistent via localStorage)
   const [config, setConfig] = useState<StudioConfig>(loadStoredConfig);
@@ -345,6 +357,27 @@ export function App() {
             </div>
           </div>
 
+          {/* Navigation Modes: Manual Mode vs. Google Sheets Mode */}
+          <nav className="header-nav-modes">
+            <button
+              type="button"
+              className={`nav-mode-btn ${activeMode === 'manual' ? 'active' : ''}`}
+              onClick={() => setActiveMode('manual')}
+            >
+              <Film size={15} className="nav-mode-icon" />
+              <span>Manual Mode</span>
+            </button>
+            <button
+              type="button"
+              className={`nav-mode-btn ${activeMode === 'sheets' ? 'active' : ''}`}
+              onClick={() => setActiveMode('sheets')}
+            >
+              <FileSpreadsheet size={15} className="nav-mode-icon" />
+              <span>Google Sheets Mode</span>
+              <span className="nav-mode-badge-new">NEW</span>
+            </button>
+          </nav>
+
           <div className="header-controls">
             {/* Live Connection Status Pill */}
             <button
@@ -399,26 +432,52 @@ export function App() {
           MAIN STUDIO WORKSPACE
           ==================================================================== */}
       <main className="studio-layout">
-        {/* Workspace Intro Banner */}
-        <div className="workspace-intro">
-          <div className="intro-text">
-            <h1>Create Inspiring YouTube Shorts in Seconds</h1>
-            <p>
-              Transform background footage and soundtracks into 1080 × 1920 vertical Shorts with centered typography overlays and cinematic formatting.
-            </p>
-          </div>
-          <div className="intro-badges">
-            <span className="engine-tag">
-              <Server size={12} color="var(--accent-primary)" /> FastAPI Engine
-            </span>
-            <span className="engine-tag">
-              <Film size={12} color="var(--accent-cyan)" /> FFmpeg 9:16 Canvas
-            </span>
-            <span className="engine-tag">
-              <Workflow size={12} color="var(--status-success)" /> n8n Orchestrator
-            </span>
-          </div>
-        </div>
+        {activeMode === 'sheets' ? (
+          <>
+            <div className="workspace-intro">
+              <div className="intro-text">
+                <h1>Google Sheets Automated Shorts Production</h1>
+                <p>
+                  Connect your Google Spreadsheet to automatically retrieve inspirational quotes, footage, and audio to render batch 9:16 vertical Shorts in seconds.
+                </p>
+              </div>
+              <div className="intro-badges">
+                <span className="engine-tag">
+                  <FileSpreadsheet size={12} color="var(--neon-cyan)" /> Google Sheets API
+                </span>
+                <span className="engine-tag">
+                  <Server size={12} color="var(--accent-primary)" /> FastAPI Engine
+                </span>
+                <span className="engine-tag">
+                  <Workflow size={12} color="var(--status-success)" /> n8n Orchestrator
+                </span>
+              </div>
+            </div>
+
+            <GoogleSheetsMode config={config} showToast={showToast} />
+          </>
+        ) : (
+          <>
+            {/* Workspace Intro Banner */}
+            <div className="workspace-intro">
+              <div className="intro-text">
+                <h1>Create Inspiring YouTube Shorts in Seconds</h1>
+                <p>
+                  Transform background footage and soundtracks into 1080 × 1920 vertical Shorts with centered typography overlays and cinematic formatting.
+                </p>
+              </div>
+              <div className="intro-badges">
+                <span className="engine-tag">
+                  <Server size={12} color="var(--accent-primary)" /> FastAPI Engine
+                </span>
+                <span className="engine-tag">
+                  <Film size={12} color="var(--accent-cyan)" /> FFmpeg 9:16 Canvas
+                </span>
+                <span className="engine-tag">
+                  <Workflow size={12} color="var(--status-success)" /> n8n Orchestrator
+                </span>
+              </div>
+            </div>
 
         {/* 2-Column Desktop Grid */}
         <div className="studio-grid">
@@ -804,7 +863,9 @@ export function App() {
             </div>
           </div>
         </div>
-      </main>
+      </>
+    )}
+  </main>
 
       {/* ====================================================================
           STUDIO CONFIGURATION MODAL (CENTERED DIALOG)

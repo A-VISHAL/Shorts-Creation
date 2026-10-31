@@ -346,3 +346,179 @@ export async function fetchHealth(baseUrl: string = LOCAL_BACKEND_URL): Promise<
     throw new Error(`Failed to reach ${target}: ${err.message || 'Connection refused'}`);
   }
 }
+
+// ==============================================================================
+// GOOGLE SHEETS API CLIENT
+// ==============================================================================
+
+export interface SheetsAuthStatus {
+  configured: boolean;
+  serviceAccountEmail: string | null;
+  projectId: string | null;
+  credentialsSource: string | null;
+  instructions: string;
+}
+
+export interface SheetMeta {
+  title: string;
+  id: number;
+  rowCount: number;
+}
+
+export interface SheetSampleRow {
+  rowNumber: number;
+  data: Record<string, string>;
+  isValid: boolean;
+  quote: string;
+  videoUrl: string;
+  musicUrl: string;
+  title: string;
+  status: string;
+}
+
+export interface SheetInspectResult {
+  success: boolean;
+  spreadsheetId: string;
+  spreadsheetTitle: string;
+  sheets: SheetMeta[];
+  activeSheet: string;
+  headers: string[];
+  detectedMapping: {
+    quote: string;
+    video_url: string;
+    music_url: string;
+    title: string;
+    status: string;
+    output_url: string;
+  };
+  totalRows: number;
+  validRowsCount: number;
+  sampleRows: SheetSampleRow[];
+  authMode: string;
+  serviceAccountEmail: string | null;
+  error?: string;
+  code?: string;
+}
+
+export interface SheetRowItem {
+  rowNumber: number;
+  quote: string;
+  videoUrl: string;
+  musicUrl: string;
+  title: string;
+  status: string;
+  outputUrl: string;
+  isValid: boolean;
+  invalidReason: string | null;
+  raw: Record<string, string>;
+}
+
+export const DEFAULT_SPREADSHEET_URL =
+  'https://docs.google.com/spreadsheets/d/1NyBnzZRfEkq1uPz7JXFm38ZtH8cBvW8dk006xJizQSo/edit?gid=604247059#gid=604247059';
+
+/**
+ * Fetch Google Sheets Service Account status.
+ */
+export async function fetchSheetsAuthStatus(baseUrl: string = LOCAL_BACKEND_URL): Promise<SheetsAuthStatus> {
+  const cleanUrl = normalizeUrl(baseUrl);
+  const target = `${cleanUrl}/api/sheets/auth-status`;
+  const response = await fetch(target, { method: 'GET' });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} fetching sheets auth status`);
+  }
+  return await response.json();
+}
+
+/**
+ * Inspect Google Spreadsheet tabs, columns, and sample rows.
+ */
+export async function inspectSpreadsheet(
+  spreadsheetUrl: string,
+  sheetName?: string,
+  baseUrl: string = LOCAL_BACKEND_URL
+): Promise<SheetInspectResult> {
+  const cleanUrl = normalizeUrl(baseUrl);
+  const target = `${cleanUrl}/api/sheets/inspect`;
+
+  const response = await fetch(target, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      spreadsheetUrl: spreadsheetUrl.trim(),
+      sheetName: sheetName || null,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok || data.success === false) {
+    throw new Error(data.error || data.message || `Failed to inspect spreadsheet (HTTP ${response.status})`);
+  }
+  return data;
+}
+
+/**
+ * Fetch all mapped rows from Google Spreadsheet.
+ */
+export async function fetchSpreadsheetRows(
+  spreadsheetUrl: string,
+  sheetName?: string,
+  mapping?: Record<string, string>,
+  baseUrl: string = LOCAL_BACKEND_URL
+): Promise<{ success: boolean; rows: SheetRowItem[]; total: number; validCount: number }> {
+  const cleanUrl = normalizeUrl(baseUrl);
+  const target = `${cleanUrl}/api/sheets/rows`;
+
+  const response = await fetch(target, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      spreadsheetUrl: spreadsheetUrl.trim(),
+      sheetName: sheetName || null,
+      mapping: mapping || null,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok || data.success === false) {
+    throw new Error(data.error || `Failed to fetch rows from spreadsheet (HTTP ${response.status})`);
+  }
+  return data;
+}
+
+/**
+ * Update row status & output URL in Google Spreadsheet.
+ */
+export async function updateSpreadsheetRowStatus(
+  spreadsheetUrl: string,
+  rowNumber: number,
+  newStatus: string,
+  outputUrl?: string,
+  sheetName?: string,
+  statusColumnName?: string,
+  outputColumnName?: string,
+  baseUrl: string = LOCAL_BACKEND_URL
+): Promise<boolean> {
+  const cleanUrl = normalizeUrl(baseUrl);
+  const target = `${cleanUrl}/api/sheets/update-status`;
+
+  try {
+    const response = await fetch(target, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        spreadsheetUrl: spreadsheetUrl.trim(),
+        rowNumber,
+        status: newStatus,
+        outputUrl: outputUrl || null,
+        sheetName: sheetName || null,
+        statusColumnName: statusColumnName || null,
+        outputColumnName: outputColumnName || null,
+      }),
+    });
+    const data = await response.json();
+    return Boolean(data.success);
+  } catch (err) {
+    console.warn(`Could not update sheet row status:`, err);
+    return false;
+  }
+}

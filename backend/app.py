@@ -45,6 +45,7 @@ from connection_manager import (
     connection_manager,
     validate_webhook_destination,
 )
+from sheets_service import sheets_service
 
 # -----------------------------------------------------------------------------
 # Configuration
@@ -436,6 +437,27 @@ class WebhookProxyRequest(BaseModel):
 
 class WebhookVerifyRequest(BaseModel):
     webhookUrl: str = Field(..., description="Target webhook URL to verify")
+
+
+class SpreadsheetInspectRequest(BaseModel):
+    spreadsheetUrl: str = Field(..., description="Google Sheets URL or ID")
+    sheetName: Optional[str] = Field(None, description="Optional sheet/tab name")
+
+
+class SpreadsheetRowsRequest(BaseModel):
+    spreadsheetUrl: str = Field(..., description="Google Sheets URL or ID")
+    sheetName: Optional[str] = Field(None, description="Optional sheet/tab name")
+    mapping: Optional[Dict[str, str]] = Field(None, description="Custom column mapping")
+
+
+class SpreadsheetUpdateStatusRequest(BaseModel):
+    spreadsheetUrl: str = Field(..., description="Google Sheets URL or ID")
+    rowNumber: int = Field(..., description="1-indexed row number in the sheet")
+    status: str = Field(..., description="New status string")
+    outputUrl: Optional[str] = Field(None, description="Generated video URL or filename")
+    sheetName: Optional[str] = Field(None, description="Optional sheet/tab name")
+    statusColumnName: Optional[str] = Field(None, description="Status column header name")
+    outputColumnName: Optional[str] = Field(None, description="Output URL column header name")
 
 
 # -----------------------------------------------------------------------------
@@ -1042,6 +1064,91 @@ async def api_verify_webhook(req: WebhookVerifyRequest) -> Any:
                 "statusCode": 0,
                 "message": f"Could not reach webhook: {str(e)}",
             }
+
+
+# -----------------------------------------------------------------------------
+# Google Sheets Endpoints
+# -----------------------------------------------------------------------------
+
+
+@app.get(
+    "/api/sheets/auth-status",
+    summary="Get Google Sheets Service Account configuration status",
+)
+async def api_sheets_auth_status() -> Any:
+    """Check if Google Service Account credentials are configured on the backend."""
+    return sheets_service.get_auth_status()
+
+
+@app.post(
+    "/api/sheets/inspect",
+    summary="Connect and inspect Google Spreadsheet columns, tabs, and sample data",
+)
+async def api_sheets_inspect(req: SpreadsheetInspectRequest) -> Any:
+    """Inspect spreadsheet tabs, header rows, and column mappings."""
+    try:
+        res = await sheets_service.inspect_spreadsheet(req.spreadsheetUrl, req.sheetName)
+        return res
+    except PermissionError as pe:
+        logger.warning(f"Google Sheets permission error: {pe}")
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={
+                "success": False,
+                "error": str(pe),
+                "code": "PERMISSION_DENIED",
+            },
+        )
+    except Exception as e:
+        logger.error(f"Google Sheets inspection failed: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={
+                "success": False,
+                "error": str(e),
+                "code": "INSPECT_FAILED",
+            },
+        )
+
+
+@app.post(
+    "/api/sheets/rows",
+    summary="Fetch all mapped rows from Google Spreadsheet",
+)
+async def api_sheets_rows(req: SpreadsheetRowsRequest) -> Any:
+    """Retrieve all rows with validity flags according to current column mapping."""
+    try:
+        rows = await sheets_service.get_all_rows(req.spreadsheetUrl, req.sheetName, req.mapping)
+        return {
+            "success": True,
+            "rows": rows,
+            "total": len(rows),
+            "validCount": sum(1 for r in rows if r.get("isValid")),
+        }
+    except Exception as e:
+        logger.error(f"Failed to fetch spreadsheet rows: {e}")
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"success": False, "error": str(e)},
+        )
+
+
+@app.post(
+    "/api/sheets/update-status",
+    summary="Update row status and output video URL in Google Spreadsheet",
+)
+async def api_sheets_update_status(req: SpreadsheetUpdateStatusRequest) -> Any:
+    """Update status cell and output URL cell in Google Sheet (requires Service Account with Editor access)."""
+    updated = await sheets_service.update_row_status(
+        url_or_id=req.spreadsheetUrl,
+        row_number=req.rowNumber,
+        new_status=req.status,
+        output_url=req.outputUrl,
+        sheet_name=req.sheetName,
+        status_column_name=req.statusColumnName,
+        output_column_name=req.outputColumnName,
+    )
+    return {"success": updated}
 
 
 @app.post(

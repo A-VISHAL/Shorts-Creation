@@ -8,3 +8,5 @@ python-dotenv>=1.0.1
 python-multipart>=0.0.9
 pytest>=8.2.0
 pytest-asyncio>=0.23.6
+gspread>=6.1.0
+google-auth>=2.30.0
