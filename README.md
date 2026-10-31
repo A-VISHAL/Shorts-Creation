@@ -15,7 +15,7 @@ User Browser (React + TypeScript Studio UI at http://localhost:5173)
 FastAPI Backend Proxy (port 8000)
     │
     ▼ (Server-to-Server POST)
-Cloud n8n Webhook (https://lukizerk3.app.n8n.cloud/webhook/generate-motivational-short)
+Cloud n8n Webhook (https://lukizerk4.app.n8n.cloud/webhook/generate-motivational-short)
     │
     ├──► [Validate Input Node] (Length, Duration, Resolution, Style, extracts fastApiBaseUrl)
     │         │ (If Invalid) ──► Respond Validation Error (400)
@@ -140,7 +140,7 @@ cd "/home/vishal/Downloads/shorts creation"
 
 ### Step 1: Import Workflow into Cloud n8n
 1. Open your cloud n8n instance:
-   `https://lukizerk3.app.n8n.cloud`
+   `https://lukizerk4.app.n8n.cloud`
 2. Go to **Workflows** → click the three dots (`...`) in the top right → select **Import from File**.
 3. Choose [`n8n/motivational-shorts-workflow.json`](file:///home/vishal/Downloads/shorts%20creation/n8n/motivational-shorts-workflow.json).
 4. Click **Save**.
@@ -149,7 +149,7 @@ cd "/home/vishal/Downloads/shorts creation"
 Toggle the workflow switch in the top-right from **Inactive** to **Active**.
 The production webhook URL is:
 ```text
-https://lukizerk3.app.n8n.cloud/webhook/generate-motivational-short
+https://lukizerk4.app.n8n.cloud/webhook/generate-motivational-short
 ```
 
 > [!IMPORTANT]
@@ -160,7 +160,7 @@ https://lukizerk3.app.n8n.cloud/webhook/generate-motivational-short
 ## 5. Solving the CORS Preflight Issue
 
 ### Why the Error Happened:
-Browsers enforce CORS on cross-origin JavaScript requests with `Content-Type: application/json`. When `http://localhost:5173` calls `https://lukizerk3.app.n8n.cloud/...`, the browser sends an `OPTIONS` preflight request. Cloud n8n's ingress drops or rejects `OPTIONS` with HTTP 500 without `Access-Control-Allow-Origin` headers, resulting in `Failed to fetch`.
+Browsers enforce CORS on cross-origin JavaScript requests with `Content-Type: application/json`. When `http://localhost:5173` calls `https://lukizerk4.app.n8n.cloud/...`, the browser sends an `OPTIONS` preflight request. Cloud n8n's ingress drops or rejects `OPTIONS` with HTTP 500 without `Access-Control-Allow-Origin` headers, resulting in `Failed to fetch`.
 
 ### How It is Solved:
 1. **Backend Proxy Mode (Default)**:
@@ -177,7 +177,7 @@ Browsers enforce CORS on cross-origin JavaScript requests with `Content-Type: ap
 Open **`http://localhost:5173`** and click **Studio Config** in the top-right corner:
 
 1. **n8n Webhook URL**:
-   Default: `https://lukizerk3.app.n8n.cloud/webhook/generate-motivational-short`
+   Default: `https://lukizerk4.app.n8n.cloud/webhook/generate-motivational-short`
 2. **FastAPI Public Base URL**:
    Set to your active Cloudflare Tunnel URL:
    `https://disclose-oil-half-spending.trycloudflare.com` (or current tunnel URL printed by `start-dev.sh`).
@@ -212,7 +212,7 @@ All 12 tests pass, including:
 
 | Issue | Cause | Solution |
 | :--- | :--- | :--- |
-| `HTTP 404: Webhook not registered` | Workflow is not Active in cloud n8n | Open `https://lukizerk3.app.n8n.cloud`, toggle the workflow switch to **Active**, and click **Save**. |
+| `HTTP 404: Webhook not registered` | Workflow is not Active in cloud n8n | Open `https://lukizerk4.app.n8n.cloud`, toggle the workflow switch to **Active**, and click **Save**. |
 | `Browser CORS Rejection / Failed to fetch` | Direct browser request blocked by browser security | Enable **Backend Proxy Mode** in Studio Configuration. |
 | `FastAPI Backend Offline` | FastAPI service or Cloudflare tunnel is not running | Run `./scripts/start-dev.sh` to start and verify all components. |
 | `Tunnel URL changed after restart` | Quick Tunnel subdomains are dynamic | Paste the new `trycloudflare.com` URL into Studio Configuration, or run `./scripts/start-dev.sh` which updates it automatically. |

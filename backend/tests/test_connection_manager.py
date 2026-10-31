@@ -140,7 +140,7 @@ async def test_tunnel_health_verification_failure():
 def test_validate_webhook_allowed_destinations():
     """Verify approved webhook patterns pass destination validation."""
     valid_urls = [
-        "https://lukizerk3.app.n8n.cloud/webhook/generate-motivational-short",
+        "https://lukizerk4.app.n8n.cloud/webhook/generate-motivational-short",
         "https://mycompany.app.n8n.cloud/webhook-test/generate-short",
         "http://localhost:5678/webhook/generate-motivational-short",
         "http://127.0.0.1:5678/webhook/local-test",

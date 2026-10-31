@@ -169,7 +169,7 @@ if [ -f "$PROJECT_ROOT/frontend/.env" ]; then
   echo "    Updated frontend/.env: VITE_FASTAPI_DIRECT_URL=$TUNNEL_URL"
 fi
 
-DEFAULT_N8N_URL="https://lukizerk3.app.n8n.cloud/webhook/generate-motivational-short"
+DEFAULT_N8N_URL="https://lukizerk4.app.n8n.cloud/webhook/generate-motivational-short"
 
 # 7. Print summary banner
 echo ""

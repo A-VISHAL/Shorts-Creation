@@ -11,7 +11,7 @@ This directory contains the importable n8n workflow for orchestrating YouTube Sh
         │
         ▼ (POST /api/webhook/proxy on FastAPI — Bypasses Browser CORS)
 ┌─────────────────────────────────┐
-│ Webhook — Generate Short        │  (https://lukizerk3.app.n8n.cloud/webhook/generate-motivational-short)
+│ Webhook — Generate Short        │  (https://lukizerk4.app.n8n.cloud/webhook/generate-motivational-short)
 └────────────────┬────────────────┘
                  │
                  ▼
@@ -60,7 +60,7 @@ This directory contains the importable n8n workflow for orchestrating YouTube Sh
 ## 1. How to Import into Cloud n8n
 
 1. Open your cloud n8n instance:
-   `https://lukizerk3.app.n8n.cloud`
+   `https://lukizerk4.app.n8n.cloud`
 2. Go to **Workflows** in the left sidebar.
 3. Click the three dots icon (`...`) in the top right or click **Add workflow**.
 4. Select **Import from File...**.
@@ -96,13 +96,13 @@ In your n8n workspace settings:
 
 - **Production Webhook URL**:
   ```text
-  https://lukizerk3.app.n8n.cloud/webhook/generate-motivational-short
+  https://lukizerk4.app.n8n.cloud/webhook/generate-motivational-short
   ```
   *(Requires workflow to be Active)*
 
 - **Test Webhook URL**:
   ```text
-  https://lukizerk3.app.n8n.cloud/webhook-test/generate-motivational-short
+  https://lukizerk4.app.n8n.cloud/webhook-test/generate-motivational-short
   ```
   *(Requires clicking "Test workflow" on the n8n canvas before sending)*
 
@@ -111,7 +111,7 @@ In your n8n workspace settings:
 ## 4. How the CORS Issue is Solved
 
 ### The Problem:
-When a browser at `http://localhost:5173` calls a cloud webhook directly (`https://lukizerk3.app.n8n.cloud/...`), the browser sends an HTTP `OPTIONS` preflight request. Cloud n8n's ingress returns HTTP 500 without `Access-Control-Allow-Origin` headers, causing the browser to abort with `Generation Error: Failed to fetch`.
+When a browser at `http://localhost:5173` calls a cloud webhook directly (`https://lukizerk4.app.n8n.cloud/...`), the browser sends an HTTP `OPTIONS` preflight request. Cloud n8n's ingress returns HTTP 500 without `Access-Control-Allow-Origin` headers, causing the browser to abort with `Generation Error: Failed to fetch`.
 
 ### The Solution:
 1. **Backend Proxy Mode (Default & Active)**:
@@ -128,7 +128,7 @@ When a browser at `http://localhost:5173` calls a cloud webhook directly (`https
 Test the complete workflow directly:
 
 ```bash
-curl -X POST "https://lukizerk3.app.n8n.cloud/webhook/generate-motivational-short" \
+curl -X POST "https://lukizerk4.app.n8n.cloud/webhook/generate-motivational-short" \
   -H "Content-Type: application/json" \
   -d '{
     "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
@@ -165,7 +165,7 @@ curl -X POST "https://lukizerk3.app.n8n.cloud/webhook/generate-motivational-shor
 
 | Symptom | Cause | Solution |
 | :--- | :--- | :--- |
-| `HTTP 404: The requested webhook "POST generate-motivational-short" is not registered` | The workflow is Inactive in cloud n8n | In `https://lukizerk3.app.n8n.cloud`, toggle the workflow switch to **Active** and click **Save**. |
+| `HTTP 404: The requested webhook "POST generate-motivational-short" is not registered` | The workflow is Inactive in cloud n8n | In `https://lukizerk4.app.n8n.cloud`, toggle the workflow switch to **Active** and click **Save**. |
 | `Browser CORS Rejection / Failed to fetch` | Direct browser request blocked by browser preflight | Ensure **Backend Proxy Mode** is enabled in Studio Configuration. |
 | `ECONNREFUSED / Connection timed out to FastAPI` | Cloudflare Tunnel is not running or URL changed | Run `./scripts/start-dev.sh` to refresh and verify the tunnel URL. |
 | `HTTP 401 Unauthorized from FastAPI` | API Key mismatch | Verify `SHORTS_API_KEY` in n8n matches `SHORTS_API_KEY` in `backend/.env`. |
