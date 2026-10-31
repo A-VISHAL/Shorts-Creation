@@ -1,0 +1,5 @@
+# Force LF line endings for the polyglot start script
+# (it must have Unix line endings for bash to execute it on Linux)
+start.bat text eol=lf
+stop.bat text eol=lf
+*.sh text eol=lf

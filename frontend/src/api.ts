@@ -91,9 +91,9 @@ export const STORAGE_KEYS = {
 };
 
 export const DEFAULT_CONFIG: StudioConfig = {
-  webhookUrl: 'https://lukizerk3.app.n8n.cloud/webhook/generate-motivational-short',
-  productionWebhookUrl: 'https://lukizerk3.app.n8n.cloud/webhook/generate-motivational-short',
-  testWebhookUrl: 'https://lukizerk3.app.n8n.cloud/webhook-test/generate-motivational-short',
+  webhookUrl: 'https://lukizerk4.app.n8n.cloud/webhook/generate-motivational-short',
+  productionWebhookUrl: 'https://lukizerk4.app.n8n.cloud/webhook/generate-motivational-short',
+  testWebhookUrl: 'https://lukizerk4.app.n8n.cloud/webhook-test/generate-motivational-short',
 };
 
 /**

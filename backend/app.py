@@ -1103,8 +1103,11 @@ async def api_proxy_webhook(req: WebhookProxyRequest, request: Request) -> Any:
         hint = data.get("hint")
         if resp.status_code == 404 and not hint:
             hint = "If using production URL, ensure the workflow is toggled to Active in n8n. If using test URL, click 'Test workflow' in n8n first."
+        # Return 200 with success=false so the browser doesn't log a misleading
+        # 404/5xx on /api/webhook/proxy.  The upstream n8n error code is preserved
+        # inside the response body for the frontend to display.
         return JSONResponse(
-            status_code=resp.status_code,
+            status_code=status.HTTP_200_OK,
             content={
                 "success": False,
                 "status": "failed",
