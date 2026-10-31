@@ -55,6 +55,7 @@ const STAGES = [
 interface Preset {
   name: string;
   badge: string;
+  badgeClass: string;
   videoUrl: string;
   musicUrl: string;
   quote: string;
@@ -66,6 +67,7 @@ const PRESETS: Preset[] = [
   {
     name: 'Instant Studio Demo',
     badge: 'Offline / Instant',
+    badgeClass: 'badge-neon-cyan',
     videoUrl: 'http://localhost:8000/media/dl_video_7a92c74aa4.mp4',
     musicUrl: 'http://localhost:8000/media/test_source_aud.mp3',
     quote: 'Stop waiting and start building your future today.',
@@ -75,6 +77,7 @@ const PRESETS: Preset[] = [
   {
     name: 'YouTube Shorts Demo',
     badge: 'yt-dlp Pipeline',
+    badgeClass: 'badge-neon-pink',
     videoUrl: 'https://youtube.com/shorts/Ke6kzNR3NnU',
     musicUrl: 'http://localhost:8000/media/test_source_aud.mp3',
     quote: 'The secret of getting ahead is getting started. Break your goals into daily steps.',
@@ -84,6 +87,7 @@ const PRESETS: Preset[] = [
   {
     name: 'Clean Minimalist',
     badge: 'Ambient Canvas',
+    badgeClass: 'badge-neon-amber',
     videoUrl: 'http://localhost:8000/media/test_source_vid.mp4',
     musicUrl: 'http://localhost:8000/media/test_source_aud.mp3',
     quote: 'Your mind is a weapon. Keep it loaded with knowledge and sharp with discipline.',
@@ -424,13 +428,13 @@ export function App() {
           <div className="form-column">
             <form onSubmit={handleGenerate}>
               {/* SECTION: Quick Start Presets */}
-              <div className="module-card">
+              <div className="module-card section-presets">
                 <div className="module-header">
                   <div className="module-title-group">
-                    <span className="module-step-badge">★</span>
-                    <span className="module-title">Quick Start Presets</span>
+                    <span className="module-step-badge badge-presets">★ PRESETS</span>
+                    <h2 className="module-title">Quick Start Presets</h2>
                   </div>
-                  <span className="module-subtitle">Click to prefill demo</span>
+                  <span className="module-subtitle subtitle-presets">Select a 1-click template</span>
                 </div>
 
                 <div className="presets-grid">
@@ -446,7 +450,7 @@ export function App() {
                       >
                         <div className="preset-top">
                           <span className="preset-name">{p.name}</span>
-                          <span className="preset-badge">{p.badge}</span>
+                          <span className={`preset-badge ${p.badgeClass}`}>{p.badge}</span>
                         </div>
                         <p className="preset-snippet">{p.quote}</p>
                       </button>
@@ -456,28 +460,28 @@ export function App() {
               </div>
 
               {/* MODULE 01: Media Sources */}
-              <div className="module-card">
+              <div className="module-card section-media">
                 <div className="module-header">
                   <div className="module-title-group">
-                    <span className="module-step-badge">01</span>
-                    <span className="module-title">Media Sources</span>
+                    <span className="module-step-badge badge-media">01 MEDIA</span>
+                    <h2 className="module-title">Media Sources</h2>
                   </div>
-                  <span className="module-subtitle">Video & Audio URLs</span>
+                  <span className="module-subtitle subtitle-media">Video & Soundtrack URLs</span>
                 </div>
 
                 {/* Video URL */}
                 <div className="form-field">
                   <div className="field-label-row">
                     <label className="field-label" htmlFor="videoUrl">
-                      <Film size={14} className="field-label-icon" />
+                      <Film size={15} className="field-label-icon icon-cyan" />
                       <span>Background Video URL</span>
                     </label>
-                    <span className="field-hint">YouTube Shorts / Direct MP4</span>
+                    <span className="field-hint hint-cyan">YouTube Shorts / MP4</span>
                   </div>
                   <input
                     id="videoUrl"
                     type="url"
-                    className="studio-input"
+                    className="studio-input input-cyan"
                     placeholder="https://youtube.com/shorts/... or http://localhost:8000/media/..."
                     value={videoUrl}
                     onChange={(e) => setVideoUrl(e.target.value)}
@@ -490,15 +494,15 @@ export function App() {
                 <div className="form-field">
                   <div className="field-label-row">
                     <label className="field-label" htmlFor="musicUrl">
-                      <Music size={14} className="field-label-icon" />
+                      <Music size={15} className="field-label-icon icon-cyan" />
                       <span>Soundtrack URL</span>
                     </label>
-                    <span className="field-hint">MP3, AAC, OGG or YouTube</span>
+                    <span className="field-hint hint-cyan">MP3, AAC or YouTube</span>
                   </div>
                   <input
                     id="musicUrl"
                     type="url"
-                    className="studio-input"
+                    className="studio-input input-cyan"
                     placeholder="http://localhost:8000/media/test_source_aud.mp3 or audio stream..."
                     value={musicUrl}
                     onChange={(e) => setMusicUrl(e.target.value)}
@@ -509,27 +513,27 @@ export function App() {
               </div>
 
               {/* MODULE 02: Short Content & Typography */}
-              <div className="module-card">
+              <div className="module-card section-typography">
                 <div className="module-header">
                   <div className="module-title-group">
-                    <span className="module-step-badge">02</span>
-                    <span className="module-title">Speech & Typography</span>
+                    <span className="module-step-badge badge-typography">02 SCRIPT</span>
+                    <h2 className="module-title">Speech & Typography</h2>
                   </div>
-                  <span className="module-subtitle">Quote & Export Title</span>
+                  <span className="module-subtitle subtitle-typography">Quote & Title Overlay</span>
                 </div>
 
                 {/* Motivational Quote */}
                 <div className="form-field">
                   <div className="field-label-row">
                     <label className="field-label" htmlFor="quoteText">
-                      <FileText size={14} className="field-label-icon" />
+                      <FileText size={15} className="field-label-icon icon-amber" />
                       <span>Motivational Quote / Speech</span>
                     </label>
-                    <span className="field-hint">Burned centered overlay</span>
+                    <span className="field-hint hint-amber">Burned 9:16 Overlay</span>
                   </div>
                   <textarea
                     id="quoteText"
-                    className="studio-textarea"
+                    className="studio-textarea input-amber"
                     rows={3}
                     placeholder="Enter the inspirational quote or speech to animate into the short..."
                     value={quoteText}
@@ -537,22 +541,24 @@ export function App() {
                     disabled={loading}
                     required
                   />
-                  <div className="char-counter">{quoteText.length} characters</div>
+                  <div className="char-counter">
+                    <span className="char-count-pill">{quoteText.length} characters</span>
+                  </div>
                 </div>
 
                 {/* Short Title */}
                 <div className="form-field">
                   <div className="field-label-row">
                     <label className="field-label" htmlFor="title">
-                      <Type size={14} className="field-label-icon" />
+                      <Type size={15} className="field-label-icon icon-amber" />
                       <span>Short Title</span>
                     </label>
-                    <span className="field-hint">Metadata & output filename</span>
+                    <span className="field-hint hint-amber">Output Filename</span>
                   </div>
                   <input
                     id="title"
                     type="text"
-                    className="studio-input"
+                    className="studio-input input-amber"
                     placeholder="e.g. Build Your Future"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
@@ -562,23 +568,23 @@ export function App() {
               </div>
 
               {/* MODULE 03: Canvas Parameters */}
-              <div className="module-card">
+              <div className="module-card section-canvas">
                 <div className="module-header">
                   <div className="module-title-group">
-                    <span className="module-step-badge">03</span>
-                    <span className="module-title">Canvas Parameters</span>
+                    <span className="module-step-badge badge-canvas">03 CANVAS</span>
+                    <h2 className="module-title">Canvas Parameters</h2>
                   </div>
-                  <span className="module-subtitle">Duration & Subtitle Style</span>
+                  <span className="module-subtitle subtitle-canvas">Duration & Subtitle Theme</span>
                 </div>
 
                 {/* Duration Segmented Control */}
                 <div className="form-field">
                   <div className="field-label-row">
                     <label className="field-label">
-                      <Clock size={14} className="field-label-icon" />
+                      <Clock size={15} className="field-label-icon icon-purple" />
                       <span>Target Duration</span>
                     </label>
-                    <span className="field-hint">Standard vertical lengths</span>
+                    <span className="field-hint hint-purple">Preset Duration</span>
                   </div>
                   <div className="segmented-control">
                     {[10, 30, 60].map((d) => (
@@ -599,10 +605,10 @@ export function App() {
                 <div className="form-field" style={{ marginTop: '1.25rem' }}>
                   <div className="field-label-row">
                     <label className="field-label">
-                      <Layers size={14} className="field-label-icon" />
+                      <Layers size={15} className="field-label-icon icon-purple" />
                       <span>Visual Typography Style</span>
                     </label>
-                    <span className="field-hint">Subtitles appearance</span>
+                    <span className="field-hint hint-purple">Overlay Theme</span>
                   </div>
                   <div className="style-grid">
                     <div
@@ -650,17 +656,17 @@ export function App() {
               {/* SECTION: Generation Trigger */}
               <button
                 type="submit"
-                className="btn-generate"
+                className="btn-generate btn-generate-neon"
                 disabled={loading}
               >
                 {loading ? (
                   <>
-                    <RefreshCw size={18} className="spinner" />
+                    <RefreshCw size={20} className="spinner" />
                     <span>Rendering Short ({currentStageIdx + 1}/6)...</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles size={18} />
+                    <Sparkles size={20} />
                     <span>Generate Motivational Short</span>
                   </>
                 )}
@@ -683,10 +689,10 @@ export function App() {
               RIGHT COLUMN: LIVE 9:16 CANVAS PREVIEW
               ================================================================ */}
           <div className="preview-column">
-            <div className="preview-container-card">
+            <div className="preview-container-card section-preview">
               <div className="preview-top-bar">
                 <div className="preview-heading">
-                  <Play size={16} color="var(--accent-primary)" />
+                  <Play size={18} className="preview-heading-icon" />
                   <span>Shorts Canvas Preview</span>
                 </div>
                 <span className="resolution-pill">1080 × 1920 MP4</span>
