@@ -255,6 +255,8 @@ export function App() {
       return;
     }
 
+    setErrorMessage(null);
+    setResult(null);
     setLoading(true);
     setCurrentStageIdx(0);
 
@@ -276,8 +278,12 @@ export function App() {
     try {
       const data = await generateShort(payload, config.webhookUrl);
       clearInterval(stageInterval);
-      setCurrentStageIdx(5); // Ready to preview & download
-      setResult(data);
+      if (data && data.success) {
+        setCurrentStageIdx(5); // Ready to preview & download
+        setResult(data);
+      } else {
+        setErrorMessage(data?.error?.message || 'Video generation failed. Please check webhook settings.');
+      }
     } catch (err: any) {
       clearInterval(stageInterval);
       setErrorMessage(err.message || 'Video generation failed. Please review the error details.');
@@ -630,15 +636,17 @@ export function App() {
                 <div className="result-meta">
                   <CheckCircle2 size={18} color="#34d399" />
                   <span>
-                    Render Complete: <strong>{result.title}</strong> ({result.durationSeconds}s, 1080×1920 MP4)
+                    Render Complete: <strong>{result.title || title || 'Motivational Short'}</strong> ({result.durationSeconds || duration || 30}s, 1080×1920 MP4)
                   </span>
                 </div>
 
                 <div className="result-btn-row">
                   <a
-                    href={result.downloadUrl}
-                    download={`${result.title.replace(/\s+/g, '_')}_Short.mp4`}
+                    href={result.downloadUrl || result.videoUrl || '#'}
+                    download={`${(result.title || title || 'Motivational_Short').replace(/\s+/g, '_')}.mp4`}
                     className="btn-download"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     <Download size={16} />
                     <span>Download MP4</span>

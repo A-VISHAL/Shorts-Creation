@@ -279,10 +279,19 @@ export async function generateShort(
     );
   }
 
-  if (!response.ok || data.success === false) {
-    const errorObj = data.error || {};
+  // Handle case where n8n returns an array or wrapped json items
+  if (Array.isArray(data) && data.length > 0) {
+    data = data[0];
+  }
+  if (data && typeof data === 'object' && data.json && typeof data.json === 'object') {
+    data = { ...data, ...data.json };
+  }
+
+  const isFailed = !response.ok || data.success === false || data.status === 'failed' || (data.error && typeof data.error === 'object');
+  if (isFailed) {
+    const errorObj = typeof data.error === 'object' && data.error !== null ? data.error : {};
     const errorMsg =
-      errorObj.message ||
+      (typeof data.error === 'string' ? data.error : errorObj.message) ||
       data.message ||
       data.detail ||
       `Request failed with HTTP status ${response.status}`;
@@ -295,7 +304,21 @@ export async function generateShort(
     throw new Error(formattedError);
   }
 
-  return data as ShortGenerateResult;
+  // Ensure all required fields exist on result object to avoid UI crashes
+  const safeResult: ShortGenerateResult = {
+    success: data.success !== false,
+    jobId: data.jobId || `job_${Date.now()}`,
+    status: data.status || 'completed',
+    videoUrl: data.videoUrl || data.url || data.outputUrl || '',
+    downloadUrl: data.downloadUrl || data.videoUrl || data.url || data.outputUrl || '',
+    title: data.title || payload.title || 'Motivational Short',
+    durationSeconds: Number(data.durationSeconds || payload.durationSeconds || 30),
+    width: Number(data.width || payload.width || 1080),
+    height: Number(data.height || payload.height || 1920),
+    style: data.style || payload.style,
+  };
+
+  return safeResult;
 }
 
 /**
