@@ -4,7 +4,6 @@ import {
   Download,
   Copy,
   RefreshCw,
-  Video,
   Music,
   Sparkles,
   Settings as SettingsIcon,
@@ -12,7 +11,6 @@ import {
   AlertCircle,
   Clock,
   Layers,
-  Sliders,
   Check,
   ShieldCheck,
   Server,
@@ -23,6 +21,8 @@ import {
   Film,
   Type,
   FileText,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import {
   generateShort,
@@ -93,6 +93,17 @@ const PRESETS: Preset[] = [
 ];
 
 export function App() {
+  // Theme State (Dark / Monochromatic Light)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem('shorts_theme');
+    return saved === 'light' ? 'light' : 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('shorts_theme', theme);
+  }, [theme]);
+
   // Configuration State (persistent via localStorage)
   const [config, setConfig] = useState<StudioConfig>(loadStoredConfig);
   const [modalWebhookUrl, setModalWebhookUrl] = useState(config.webhookUrl);
@@ -324,7 +335,7 @@ export function App() {
             <div className="brand-icon-wrap">
               <Zap size={18} />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
               <span className="brand-name">Motivational Shorts Studio</span>
               <span className="shorts-badge">9:16 Shorts</span>
             </div>
@@ -350,6 +361,20 @@ export function App() {
                   ? 'Connecting Tunnel...'
                   : 'Backend Offline'}
               </span>
+            </button>
+
+            {/* Light / Dark Mode Toggle */}
+            <button
+              type="button"
+              className="btn-theme-toggle"
+              onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+              title={`Switch to ${theme === 'dark' ? 'Monochromatic Light' : 'Vibrant Dark'} mode`}
+            >
+              {theme === 'dark' ? (
+                <Sun size={15} color="#fbbf24" />
+              ) : (
+                <Moon size={15} color="#0f172a" />
+              )}
             </button>
 
             {/* Studio Settings Button */}
@@ -380,13 +405,13 @@ export function App() {
           </div>
           <div className="intro-badges">
             <span className="engine-tag">
-              <Server size={11} /> FastAPI
+              <Server size={12} color="var(--accent-primary)" /> FastAPI Engine
             </span>
             <span className="engine-tag">
-              <Film size={11} /> FFmpeg 9:16
+              <Film size={12} color="var(--accent-cyan)" /> FFmpeg 9:16 Canvas
             </span>
             <span className="engine-tag">
-              <Workflow size={11} /> n8n Cloud
+              <Workflow size={12} color="var(--status-success)" /> n8n Orchestrator
             </span>
           </div>
         </div>
@@ -398,14 +423,14 @@ export function App() {
               ================================================================ */}
           <div className="form-column">
             <form onSubmit={handleGenerate}>
-              {/* SECTION A: Quick Start Presets */}
-              <div className="studio-card" style={{ marginBottom: '1.25rem' }}>
-                <div className="card-title-bar">
-                  <div className="card-title-group">
-                    <Sparkles size={16} className="card-title-icon" />
-                    <span className="card-title">Quick Start Presets</span>
+              {/* SECTION: Quick Start Presets */}
+              <div className="module-card">
+                <div className="module-header">
+                  <div className="module-title-group">
+                    <span className="module-step-badge">★</span>
+                    <span className="module-title">Quick Start Presets</span>
                   </div>
-                  <span className="card-badge-info">Select to prefill</span>
+                  <span className="module-subtitle">Click to prefill demo</span>
                 </div>
 
                 <div className="presets-grid">
@@ -421,7 +446,7 @@ export function App() {
                       >
                         <div className="preset-top">
                           <span className="preset-name">{p.name}</span>
-                          <span className="preset-indicator" />
+                          <span className="preset-badge">{p.badge}</span>
                         </div>
                         <p className="preset-snippet">{p.quote}</p>
                       </button>
@@ -430,87 +455,83 @@ export function App() {
                 </div>
               </div>
 
-              {/* SECTION B: Video Sources */}
-              <div className="studio-card" style={{ marginBottom: '1.25rem' }}>
-                <div className="card-title-bar">
-                  <div className="card-title-group">
-                    <Video size={16} className="card-title-icon" />
-                    <span className="card-title">Media Sources</span>
+              {/* MODULE 01: Media Sources */}
+              <div className="module-card">
+                <div className="module-header">
+                  <div className="module-title-group">
+                    <span className="module-step-badge">01</span>
+                    <span className="module-title">Media Sources</span>
                   </div>
-                  <span className="card-badge-info">YouTube or Direct Links</span>
+                  <span className="module-subtitle">Video & Audio URLs</span>
                 </div>
 
                 {/* Video URL */}
                 <div className="form-field">
                   <div className="field-label-row">
                     <label className="field-label" htmlFor="videoUrl">
-                      <Film size={13} className="field-label-icon" />
+                      <Film size={14} className="field-label-icon" />
                       <span>Background Video URL</span>
                     </label>
                     <span className="field-hint">YouTube Shorts / Direct MP4</span>
                   </div>
-                  <div className="input-wrapper">
-                    <input
-                      id="videoUrl"
-                      type="url"
-                      className="studio-input"
-                      placeholder="https://youtube.com/shorts/... or http://localhost:8000/media/..."
-                      value={videoUrl}
-                      onChange={(e) => setVideoUrl(e.target.value)}
-                      disabled={loading}
-                      required
-                    />
-                  </div>
+                  <input
+                    id="videoUrl"
+                    type="url"
+                    className="studio-input"
+                    placeholder="https://youtube.com/shorts/... or http://localhost:8000/media/..."
+                    value={videoUrl}
+                    onChange={(e) => setVideoUrl(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
                 </div>
 
                 {/* Soundtrack URL */}
                 <div className="form-field">
                   <div className="field-label-row">
                     <label className="field-label" htmlFor="musicUrl">
-                      <Music size={13} className="field-label-icon" />
+                      <Music size={14} className="field-label-icon" />
                       <span>Soundtrack URL</span>
                     </label>
                     <span className="field-hint">MP3, AAC, OGG or YouTube</span>
                   </div>
-                  <div className="input-wrapper">
-                    <input
-                      id="musicUrl"
-                      type="url"
-                      className="studio-input"
-                      placeholder="http://localhost:8000/media/test_source_aud.mp3 or audio stream..."
-                      value={musicUrl}
-                      onChange={(e) => setMusicUrl(e.target.value)}
-                      disabled={loading}
-                      required
-                    />
-                  </div>
+                  <input
+                    id="musicUrl"
+                    type="url"
+                    className="studio-input"
+                    placeholder="http://localhost:8000/media/test_source_aud.mp3 or audio stream..."
+                    value={musicUrl}
+                    onChange={(e) => setMusicUrl(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
                 </div>
               </div>
 
-              {/* SECTION C: Content */}
-              <div className="studio-card" style={{ marginBottom: '1.25rem' }}>
-                <div className="card-title-bar">
-                  <div className="card-title-group">
-                    <Type size={16} className="card-title-icon" />
-                    <span className="card-title">Short Content & Typography</span>
+              {/* MODULE 02: Short Content & Typography */}
+              <div className="module-card">
+                <div className="module-header">
+                  <div className="module-title-group">
+                    <span className="module-step-badge">02</span>
+                    <span className="module-title">Speech & Typography</span>
                   </div>
-                  <span className="card-badge-info">Subtitles & Title</span>
+                  <span className="module-subtitle">Quote & Export Title</span>
                 </div>
 
                 {/* Motivational Quote */}
                 <div className="form-field">
                   <div className="field-label-row">
                     <label className="field-label" htmlFor="quoteText">
-                      <FileText size={13} className="field-label-icon" />
-                      <span>Motivational Speech / Quote</span>
+                      <FileText size={14} className="field-label-icon" />
+                      <span>Motivational Quote / Speech</span>
                     </label>
-                    <span className="field-hint">Dynamic typography overlay</span>
+                    <span className="field-hint">Burned centered overlay</span>
                   </div>
                   <textarea
                     id="quoteText"
                     className="studio-textarea"
                     rows={3}
-                    placeholder="Enter the speech, quote, or key message to burn into the video..."
+                    placeholder="Enter the inspirational quote or speech to animate into the short..."
                     value={quoteText}
                     onChange={(e) => setQuoteText(e.target.value)}
                     disabled={loading}
@@ -523,9 +544,10 @@ export function App() {
                 <div className="form-field">
                   <div className="field-label-row">
                     <label className="field-label" htmlFor="title">
+                      <Type size={14} className="field-label-icon" />
                       <span>Short Title</span>
                     </label>
-                    <span className="field-hint">Used for export filename</span>
+                    <span className="field-hint">Metadata & output filename</span>
                   </div>
                   <input
                     id="title"
@@ -539,24 +561,24 @@ export function App() {
                 </div>
               </div>
 
-              {/* SECTION D: Video Settings */}
-              <div className="studio-card" style={{ marginBottom: '1.25rem' }}>
-                <div className="card-title-bar">
-                  <div className="card-title-group">
-                    <Sliders size={16} className="card-title-icon" />
-                    <span className="card-title">Video Settings</span>
+              {/* MODULE 03: Canvas Parameters */}
+              <div className="module-card">
+                <div className="module-header">
+                  <div className="module-title-group">
+                    <span className="module-step-badge">03</span>
+                    <span className="module-title">Canvas Parameters</span>
                   </div>
-                  <span className="card-badge-info">Canvas Parameters</span>
+                  <span className="module-subtitle">Duration & Subtitle Style</span>
                 </div>
 
                 {/* Duration Segmented Control */}
                 <div className="form-field">
                   <div className="field-label-row">
                     <label className="field-label">
-                      <Clock size={13} className="field-label-icon" />
+                      <Clock size={14} className="field-label-icon" />
                       <span>Target Duration</span>
                     </label>
-                    <span className="field-hint">Standard Shorts lengths</span>
+                    <span className="field-hint">Standard vertical lengths</span>
                   </div>
                   <div className="segmented-control">
                     {[10, 30, 60].map((d) => (
@@ -574,10 +596,10 @@ export function App() {
                 </div>
 
                 {/* Visual Typography Style Selector */}
-                <div className="form-field" style={{ marginTop: '1rem' }}>
+                <div className="form-field" style={{ marginTop: '1.25rem' }}>
                   <div className="field-label-row">
                     <label className="field-label">
-                      <Layers size={13} className="field-label-icon" />
+                      <Layers size={14} className="field-label-icon" />
                       <span>Visual Typography Style</span>
                     </label>
                     <span className="field-hint">Subtitles appearance</span>
@@ -625,7 +647,7 @@ export function App() {
                 </div>
               </div>
 
-              {/* SECTION E: Generation Trigger */}
+              {/* SECTION: Generation Trigger */}
               <button
                 type="submit"
                 className="btn-generate"
@@ -664,7 +686,7 @@ export function App() {
             <div className="preview-container-card">
               <div className="preview-top-bar">
                 <div className="preview-heading">
-                  <Play size={16} color="#ef4444" />
+                  <Play size={16} color="var(--accent-primary)" />
                   <span>Shorts Canvas Preview</span>
                 </div>
                 <span className="resolution-pill">1080 × 1920 MP4</span>
@@ -696,16 +718,16 @@ export function App() {
                         >
                           <span className="step-indicator">
                             {idx < currentStageIdx ? (
-                              <CheckCircle2 size={13} color="#10b981" />
+                              <CheckCircle2 size={13} color="var(--status-success)" />
                             ) : idx === currentStageIdx ? (
-                              <RefreshCw size={13} className="spinner" color="#60a5fa" />
+                              <RefreshCw size={13} className="spinner" color="var(--accent-cyan)" />
                             ) : (
                               <div
                                 style={{
                                   width: '5px',
                                   height: '5px',
                                   borderRadius: '50%',
-                                  background: 'rgba(255, 255, 255, 0.2)',
+                                  background: 'rgba(255, 255, 255, 0.25)',
                                 }}
                               />
                             )}
@@ -744,7 +766,7 @@ export function App() {
               {result?.success && Boolean(result.videoUrl || result.downloadUrl) && (
                 <div className="render-success-bar">
                   <div className="success-meta-row">
-                    <CheckCircle2 size={15} color="#10b981" style={{ flexShrink: 0 }} />
+                    <CheckCircle2 size={16} color="var(--status-success)" style={{ flexShrink: 0 }} />
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       Render Complete: <strong>{result.title || title || 'Motivational Short'}</strong> ({result.durationSeconds || duration}s)
                     </span>
@@ -767,7 +789,7 @@ export function App() {
                       className="btn-action-secondary"
                       onClick={handleCopyUrl}
                     >
-                      {copied ? <Check size={15} color="#10b981" /> : <Copy size={15} />}
+                      {copied ? <Check size={15} color="var(--status-success)" /> : <Copy size={15} />}
                       <span>{copied ? 'Copied' : 'Copy URL'}</span>
                     </button>
                   </div>
@@ -787,7 +809,7 @@ export function App() {
             {/* Modal Top Header */}
             <div className="modal-top">
               <div className="modal-title-group">
-                <SettingsIcon size={18} color="#ef4444" />
+                <SettingsIcon size={18} color="var(--accent-primary)" />
                 <h3 className="modal-heading">Studio Configuration</h3>
               </div>
               <button
@@ -813,7 +835,7 @@ export function App() {
               <div className="config-section-card">
                 <div className="config-section-header">
                   <span className="section-label">
-                    <Server size={15} color="#38bdf8" />
+                    <Server size={15} color="var(--accent-cyan)" />
                     <span>Backend Connection & Cloudflare Tunnel</span>
                   </span>
                   <button
@@ -846,7 +868,7 @@ export function App() {
                         </span>
                       )}
                       {health && (
-                        <div style={{ fontSize: '0.66rem', color: 'var(--text-tertiary)', marginTop: '0.3rem' }}>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: '0.3rem' }}>
                           v{health.version} • FFmpeg {health.dependencies.ffmpeg ? '✓' : '✗'} • yt-dlp {health.dependencies.yt_dlp ? '✓' : '✗'}
                         </div>
                       )}
@@ -877,7 +899,7 @@ export function App() {
                 {/* Active Public Tunnel URL */}
                 {connectionStatus?.tunnel.url && (
                   <div style={{ marginTop: '0.5rem' }}>
-                    <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginBottom: '0.25rem' }}>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', marginBottom: '0.25rem' }}>
                       Active Public Tunnel URL (Auto-forwarded to cloud n8n):
                     </div>
                     <div className="tunnel-url-field">
@@ -910,7 +932,7 @@ export function App() {
                 )}
 
                 {/* Metadata & Proxy Badge */}
-                <div style={{ marginTop: '0.75rem', fontSize: '0.68rem', color: 'var(--text-tertiary)', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div style={{ marginTop: '0.75rem', fontSize: '0.7rem', color: 'var(--text-tertiary)', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <span>Health Check: {formatLastCheck(connectionStatus?.tunnel.lastHealthCheck)}</span>
                   <span>•</span>
                   <span>Auto-Reconnect: Active</span>
@@ -919,18 +941,18 @@ export function App() {
                 <div
                   style={{
                     marginTop: '0.75rem',
-                    padding: '0.55rem 0.75rem',
-                    borderRadius: '6px',
-                    background: 'rgba(16, 185, 129, 0.08)',
-                    border: '1px solid rgba(16, 185, 129, 0.2)',
-                    fontSize: '0.72rem',
-                    color: '#34d399',
+                    padding: '0.6rem 0.85rem',
+                    borderRadius: '8px',
+                    background: 'var(--status-success-subtle)',
+                    border: '1px solid var(--status-success-border)',
+                    fontSize: '0.74rem',
+                    color: 'var(--status-success)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.45rem',
+                    gap: '0.5rem',
                   }}
                 >
-                  <ShieldCheck size={14} style={{ flexShrink: 0 }} />
+                  <ShieldCheck size={15} style={{ flexShrink: 0 }} />
                   <span>
                     <strong>Backend Proxy Mode:</strong> Webhook requests route server-side through local FastAPI to bypass browser CORS preflight restrictions.
                   </span>
@@ -941,7 +963,7 @@ export function App() {
               <div className="config-section-card">
                 <div className="config-section-header">
                   <span className="section-label">
-                    <Workflow size={15} color="#ef4444" />
+                    <Workflow size={15} color="var(--accent-primary)" />
                     <span>n8n Webhook Endpoint</span>
                   </span>
                   <button
@@ -1005,19 +1027,19 @@ export function App() {
                 {webhookVerifyResult && (
                   <div
                     style={{
-                      marginTop: '0.65rem',
-                      padding: '0.5rem 0.75rem',
-                      borderRadius: '6px',
-                      fontSize: '0.74rem',
+                      marginTop: '0.75rem',
+                      padding: '0.55rem 0.85rem',
+                      borderRadius: '8px',
+                      fontSize: '0.76rem',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.45rem',
-                      background: webhookVerifyResult.success ? 'rgba(16, 185, 129, 0.1)' : 'rgba(244, 63, 94, 0.1)',
-                      border: webhookVerifyResult.success ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(244, 63, 94, 0.3)',
-                      color: webhookVerifyResult.success ? '#34d399' : '#f87171',
+                      gap: '0.5rem',
+                      background: webhookVerifyResult.success ? 'var(--status-success-subtle)' : 'var(--status-error-subtle)',
+                      border: `1px solid ${webhookVerifyResult.success ? 'var(--status-success-border)' : 'var(--status-error-border)'}`,
+                      color: webhookVerifyResult.success ? 'var(--status-success)' : 'var(--status-error)',
                     }}
                   >
-                    {webhookVerifyResult.success ? <Check size={13} /> : <AlertCircle size={13} />}
+                    {webhookVerifyResult.success ? <Check size={14} /> : <AlertCircle size={14} />}
                     <span>{webhookVerifyResult.message}</span>
                   </div>
                 )}
@@ -1036,7 +1058,7 @@ export function App() {
               <button
                 type="button"
                 className="btn-action-primary"
-                style={{ background: 'var(--accent-red)', color: '#ffffff' }}
+                style={{ background: 'var(--accent-primary)', color: 'var(--text-inverse)' }}
                 onClick={handleSaveSettings}
               >
                 Save & Close
@@ -1049,7 +1071,7 @@ export function App() {
       {/* Persistent Toast Notification */}
       {toastMessage && (
         <div className="studio-toast">
-          <CheckCircle2 size={16} color="#10b981" />
+          <CheckCircle2 size={16} color="var(--status-success)" />
           <span>{toastMessage}</span>
         </div>
       )}
