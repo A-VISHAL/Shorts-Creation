@@ -1048,7 +1048,11 @@ async def api_verify_webhook(req: WebhookVerifyRequest) -> Any:
     "/api/webhook/proxy",
     summary="Forward request to n8n webhook (eliminates browser CORS issues)",
 )
-async def api_proxy_webhook(req: WebhookProxyRequest, request: Request) -> Any:
+async def api_proxy_webhook(
+    req: WebhookProxyRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+) -> Any:
     """Proxy request to cloud n8n webhook server-side to eliminate browser CORS preflight errors."""
     parsed = urlparse(req.webhookUrl)
     if parsed.scheme.lower() not in ("http", "https") or not parsed.hostname:
@@ -1120,6 +1124,40 @@ async def api_proxy_webhook(req: WebhookProxyRequest, request: Request) -> Any:
                 "details": data,
             },
         )
+
+    if isinstance(data, dict) and data.get("success") is True and not data.get("videoUrl") and not data.get("downloadUrl"):
+        logger.warning(
+            "n8n webhook responded with success=true but no videoUrl/downloadUrl. "
+            "Executing local FFmpeg render pipeline automatically to complete the short..."
+        )
+        try:
+            render_req = RenderRequest(
+                videoUrl=payload.get("videoUrl", ""),
+                musicUrl=payload.get("musicUrl", ""),
+                text=payload.get("text", "Motivational Short"),
+                title=payload.get("title", "Motivational Short"),
+                durationSeconds=int(payload.get("durationSeconds", 30)),
+                width=int(payload.get("width", 1080)),
+                height=int(payload.get("height", 1920)),
+                style=payload.get("style", "dark-motivational"),
+            )
+            local_rendered = await api_render_video(render_req, background_tasks, request)
+            return local_rendered.model_dump()
+        except Exception as fallback_err:
+            logger.error(f"Local render fallback failed: {fallback_err}")
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={
+                    "success": False,
+                    "status": "failed",
+                    "error": {
+                        "code": "RENDER_FALLBACK_FAILED",
+                        "message": f"n8n did not return a video, and local rendering failed: {str(fallback_err)}",
+                        "hint": "Ensure source video and soundtrack URLs are valid and accessible.",
+                    },
+                    "details": str(fallback_err),
+                },
+            )
 
     return data
 
