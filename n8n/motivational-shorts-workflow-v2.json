@@ -1,0 +1,816 @@
+{
+  "name": "Motivational YouTube Shorts Generator v2 (Multi-Platform Publishing)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-motivational-short-v2",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-trigger-v2",
+      "name": "Webhook — Generate Short v2",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        160,
+        340
+      ],
+      "webhookId": "generate-motivational-short-v2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst input = (raw && raw.body && typeof raw.body === 'object') ? raw.body : (raw || {});\nconst errors = [];\n\nif (!input.videoUrl || typeof input.videoUrl !== 'string' || !input.videoUrl.trim().startsWith('http')) {\n  errors.push('A valid videoUrl starting with http:// or https:// is required.');\n}\n\nif (!input.musicUrl || typeof input.musicUrl !== 'string' || !input.musicUrl.trim().startsWith('http')) {\n  errors.push('A valid musicUrl starting with http:// or https:// is required.');\n}\n\nif (!input.text || typeof input.text !== 'string' || input.text.trim().length < 3) {\n  errors.push('Motivational text must be at least 3 characters long.');\n}\n\nconst duration = Number(input.durationSeconds) || 30;\nif (duration < 5 || duration > 120) {\n  errors.push('durationSeconds must be between 5 and 120.');\n}\n\nconst width = Number(input.width) || 1080;\nconst height = Number(input.height) || 1920;\nconst style = input.style || 'dark-motivational';\nconst title = (input.title || 'Motivational Short').trim();\n\n// Determine FastAPI public endpoint (provided by frontend payload or tunnel fallback)\nconst defaultFallback = 'https://disclose-oil-half-spending.trycloudflare.com';\nconst fastApiBaseUrl = (input.fastApiBaseUrl || defaultFallback).trim().replace(/\\/$/, '');\nconst apiKey = (input.apiKey || 'dev-shorts-secret-key-2024').trim();\n\n// Publishing options\nconst publishPlatforms = Object.assign({\n  youtube: true,\n  discord: true,\n  telegram: true,\n  instagram: true\n}, input.publishPlatforms || input.platforms || {});\n\nconst youtubePrivacy = (input.youtubePrivacy || 'private').toLowerCase();\nconst spreadsheetUrl = input.spreadsheetUrl || input.spreadsheetId || null;\nconst rowNumber = input.rowNumber ? Number(input.rowNumber) : null;\nconst sheetName = input.sheetName || null;\n\nif (errors.length > 0) {\n  return [{\n    json: {\n      isValid: false,\n      errors: errors,\n      fastApiBaseUrl: fastApiBaseUrl,\n      apiKey: apiKey\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    isValid: true,\n    videoUrl: input.videoUrl.trim(),\n    musicUrl: input.musicUrl.trim(),\n    text: input.text.trim(),\n    title: title,\n    durationSeconds: duration,\n    width: width,\n    height: height,\n    style: style,\n    fastApiBaseUrl: fastApiBaseUrl,\n    apiKey: apiKey,\n    publishPlatforms: publishPlatforms,\n    youtubePrivacy: youtubePrivacy,\n    spreadsheetUrl: spreadsheetUrl,\n    rowNumber: rowNumber,\n    sheetName: sheetName\n  }\n}];"
+      },
+      "id": "node-validate-input-v2",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        380,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.isValid }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-check-valid-v2",
+      "name": "Is Input Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        600,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: false,\n  status: 'failed',\n  error: {\n    code: 'VALIDATION_ERROR',\n    message: ($json.errors || ['Invalid input parameters']).join(', ')\n  }\n}) }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization, X-Requested-With, X-API-Key"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS, GET"
+              }
+            ]
+          }
+        }
+      },
+      "id": "node-respond-validation-error-v2",
+      "name": "Respond Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        820,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Validate Input').first().json.fastApiBaseUrl + '/api/media/download' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Validate Input').first().json.apiKey || 'dev-shorts-secret-key-2024' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  url: $('Validate Input').first().json.videoUrl,\n  sourceUrl: $('Validate Input').first().json.videoUrl,\n  media_type: 'video',\n  mediaType: 'video'\n}) }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "node-download-video-v2",
+      "name": "Download Source Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        220
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Validate Input').first().json.fastApiBaseUrl + '/api/media/download' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Validate Input').first().json.apiKey || 'dev-shorts-secret-key-2024' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  url: $('Validate Input').first().json.musicUrl,\n  sourceUrl: $('Validate Input').first().json.musicUrl,\n  media_type: 'audio',\n  mediaType: 'audio'\n}) }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "node-download-music-v2",
+      "name": "Download Soundtrack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        220
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Validate Input').first().json;\nconst videoDownload = $('Download Source Video').first().json;\nconst musicDownload = $('Download Soundtrack').first().json;\n\nif (videoDownload.error || videoDownload.detail) {\n  return [{\n    json: {\n      error: true,\n      message: 'Video download failed: ' + (videoDownload.detail || videoDownload.error || 'Unknown error')\n    }\n  }];\n}\n\nif (musicDownload.error || musicDownload.detail) {\n  return [{\n    json: {\n      error: true,\n      message: 'Music download failed: ' + (musicDownload.detail || musicDownload.error || 'Unknown error')\n    }\n  }];\n}\n\nconst downloadedVideoUrl = videoDownload.mediaUrl || videoDownload.downloadUrl || original.videoUrl;\nconst downloadedMusicUrl = musicDownload.mediaUrl || musicDownload.downloadUrl || original.musicUrl;\n\nreturn [{\n  json: {\n    videoUrl: downloadedVideoUrl,\n    musicUrl: downloadedMusicUrl,\n    text: original.text,\n    title: original.title,\n    durationSeconds: original.durationSeconds,\n    width: original.width,\n    height: original.height,\n    style: original.style,\n    fastApiBaseUrl: original.fastApiBaseUrl,\n    apiKey: original.apiKey,\n    publishPlatforms: original.publishPlatforms,\n    youtubePrivacy: original.youtubePrivacy,\n    spreadsheetUrl: original.spreadsheetUrl,\n    rowNumber: original.rowNumber,\n    sheetName: original.sheetName\n  }\n}];"
+      },
+      "id": "node-prepare-render-v2",
+      "name": "Prepare Render Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Validate Input').first().json.fastApiBaseUrl + '/api/video/render' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $('Validate Input').first().json.apiKey || 'dev-shorts-secret-key-2024' }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  videoUrl: $json.videoUrl,\n  musicUrl: $json.musicUrl,\n  text: $json.text,\n  title: $json.title,\n  durationSeconds: $json.durationSeconds,\n  width: $json.width,\n  height: $json.height,\n  style: $json.style\n}) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "node-render-short-v2",
+      "name": "Render Short (FFmpeg)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1480,
+        220
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true
+            }
+          ],
+          "string": [
+            {
+              "value1": "={{ $json.videoUrl }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "node-check-render-v2",
+      "name": "Is Render Successful?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: false,\n  status: 'failed',\n  error: {\n    code: 'RENDER_FAILED',\n    message: $json.detail || $json.error || $json.message || 'Video rendering failed or timed out.'\n  }\n}) }}",
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization, X-Requested-With, X-API-Key"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS, GET"
+              }
+            ]
+          }
+        }
+      },
+      "id": "node-respond-render-error-v2",
+      "name": "Respond Render Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1920,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.downloadUrl || $json.videoUrl }}",
+        "responseFormat": "file",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "node-download-rendered-mp4",
+      "name": "Get Final MP4 and Metadata",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1920,
+        180
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Validate Input').first().json;\nconst renderOutput = $('Render Short (FFmpeg)').first().json;\nconst binaryItem = $input.first();\nconst binaryData = binaryItem && binaryItem.binary ? binaryItem.binary : null;\n\nconst title = original.title || 'Motivational Short';\nconst quote = original.text || 'Keep pushing forward.';\nconst videoUrl = renderOutput.videoUrl || '';\nconst downloadUrl = renderOutput.downloadUrl || videoUrl;\nconst fastApiBaseUrl = original.fastApiBaseUrl;\nconst apiKey = original.apiKey;\n\n// Platform specific captions (Consistent motivational quote across all platforms)\nconst youtubeTitle = (title + ' #Shorts').substring(0, 95);\nconst youtubeDescription = `\"${quote}\"\\n\\nTransform your mindset, stay disciplined, and rise above limits.\\n\\n#Shorts #Motivation #Success #Inspiration #Mindset`;\nconst youtubeTags = ['Shorts', 'Motivation', 'Success', 'Inspiration', 'Mindset'];\n\nconst discordContent = `**${title}**\\n\\n> \"${quote}\"\\n\\n#Shorts #Motivation #Success`;\nconst telegramCaption = `🎬 **${title}**\\n\\n❝ ${quote} ❞\\n\\n#Shorts #Motivation #Success #Discipline`;\nconst instagramCaption = `${title}\\n\\n❝ ${quote} ❞\\n.\\n.\\n#shorts #motivation #success #mindset #reels #growth`;\n\nconst payload = {\n  title: title,\n  quote: quote,\n  videoUrl: videoUrl,\n  downloadUrl: downloadUrl,\n  fastApiBaseUrl: fastApiBaseUrl,\n  apiKey: apiKey,\n  publishPlatforms: original.publishPlatforms || { youtube: true, discord: true, telegram: true, instagram: true },\n  youtubePrivacy: original.youtubePrivacy || 'private',\n  spreadsheetUrl: original.spreadsheetUrl,\n  rowNumber: original.rowNumber,\n  sheetName: original.sheetName,\n  captions: {\n    youtube: { title: youtubeTitle, description: youtubeDescription, tags: youtubeTags },\n    discord: { content: discordContent },\n    telegram: { caption: telegramCaption },\n    instagram: { caption: instagramCaption }\n  }\n};\n\nconst outItem = { json: payload };\nif (binaryData) {\n  outItem.binary = binaryData;\n}\nreturn [outItem];"
+      },
+      "id": "node-prepare-captions-v2",
+      "name": "Prepare Platform-Specific Captions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2140,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.fastApiBaseUrl + '/api/publish/dispatch' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $json.apiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  videoUrl: $json.videoUrl,\n  title: $json.title,\n  quote: $json.quote,\n  platforms: { youtube: Boolean($json.publishPlatforms.youtube), discord: false, telegram: false, instagram: false },\n  youtubePrivacy: $json.youtubePrivacy\n}) }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "node-publish-youtube-branch",
+      "name": "Publish to YouTube Shorts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        40
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resp = $input.first().json || {};\nconst yt = (resp.platforms && resp.platforms.youtube) ? resp.platforms.youtube : {};\nreturn [{\n  json: {\n    platform: 'youtube',\n    status: yt.status || (resp.error ? 'Failed' : 'Pending'),\n    videoId: yt.videoId || '',\n    url: yt.url || '',\n    error: yt.error || (resp.error ? (resp.error.message || JSON.stringify(resp.error)) : null)\n  }\n}];"
+      },
+      "id": "node-format-youtube-result",
+      "name": "Format YouTube Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2660,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.fastApiBaseUrl + '/api/publish/dispatch' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $json.apiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  videoUrl: $json.videoUrl,\n  title: $json.title,\n  quote: $json.quote,\n  platforms: { youtube: false, discord: Boolean($json.publishPlatforms.discord), telegram: false, instagram: false }\n}) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "node-publish-discord-branch",
+      "name": "Send to Discord",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        180
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resp = $input.first().json || {};\nconst dc = (resp.platforms && resp.platforms.discord) ? resp.platforms.discord : {};\nreturn [{\n  json: {\n    platform: 'discord',\n    status: dc.status || (resp.error ? 'Failed' : 'Pending'),\n    messageId: dc.messageId || '',\n    url: dc.url || '',\n    error: dc.error || (resp.error ? (resp.error.message || JSON.stringify(resp.error)) : null)\n  }\n}];"
+      },
+      "id": "node-format-discord-result",
+      "name": "Format Discord Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2660,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.fastApiBaseUrl + '/api/publish/dispatch' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $json.apiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  videoUrl: $json.videoUrl,\n  title: $json.title,\n  quote: $json.quote,\n  platforms: { youtube: false, discord: false, telegram: Boolean($json.publishPlatforms.telegram), instagram: false }\n}) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "node-publish-telegram-branch",
+      "name": "Send to Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        320
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resp = $input.first().json || {};\nconst tg = (resp.platforms && resp.platforms.telegram) ? resp.platforms.telegram : {};\nreturn [{\n  json: {\n    platform: 'telegram',\n    status: tg.status || (resp.error ? 'Failed' : 'Pending'),\n    messageId: tg.messageId || '',\n    error: tg.error || (resp.error ? (resp.error.message || JSON.stringify(resp.error)) : null)\n  }\n}];"
+      },
+      "id": "node-format-telegram-result",
+      "name": "Format Telegram Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2660,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.fastApiBaseUrl + '/api/publish/dispatch' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $json.apiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  videoUrl: $json.videoUrl,\n  title: $json.title,\n  quote: $json.quote,\n  platforms: { youtube: false, discord: false, telegram: false, instagram: Boolean($json.publishPlatforms.instagram) }\n}) }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "node-publish-instagram-branch",
+      "name": "Publish Instagram Reel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2420,
+        460
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resp = $input.first().json || {};\nconst ig = (resp.platforms && resp.platforms.instagram) ? resp.platforms.instagram : {};\nreturn [{\n  json: {\n    platform: 'instagram',\n    status: ig.status || (resp.error ? 'Failed' : 'Pending'),\n    mediaId: ig.mediaId || '',\n    url: ig.url || '',\n    error: ig.error || (resp.error ? (resp.error.message || JSON.stringify(resp.error)) : null)\n  }\n}];"
+      },
+      "id": "node-format-instagram-result",
+      "name": "Format Instagram Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2660,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const original = $('Validate Input').first().json;\nconst renderInfo = $('Render Short (FFmpeg)').first().json;\n\n// Collect formatted results from each independent branch\nlet ytResult = { status: 'Skipped', videoId: '', url: '', error: null };\nlet dcResult = { status: 'Skipped', messageId: '', url: '', error: null };\nlet tgResult = { status: 'Skipped', messageId: '', error: null };\nlet igResult = { status: 'Skipped', mediaId: '', url: '', error: null };\n\ntry {\n  ytResult = $('Format YouTube Result').first().json;\n} catch (e) {}\n\ntry {\n  dcResult = $('Format Discord Result').first().json;\n} catch (e) {}\n\ntry {\n  tgResult = $('Format Telegram Result').first().json;\n} catch (e) {}\n\ntry {\n  igResult = $('Format Instagram Result').first().json;\n} catch (e) {}\n\nconst platformList = [ytResult, dcResult, tgResult, igResult];\nconst activePlatforms = platformList.filter(p => p.status !== 'Skipped');\n\nlet overallStatus = 'Skipped';\nif (activePlatforms.length > 0) {\n  const successCount = activePlatforms.filter(p => p.status === 'Published').length;\n  const failCount = activePlatforms.filter(p => p.status === 'Failed').length;\n\n  if (successCount === activePlatforms.length) {\n    overallStatus = 'Completed';\n  } else if (successCount > 0) {\n    overallStatus = 'Partially Completed';\n  } else {\n    overallStatus = 'Failed';\n  }\n}\n\nconst timestamp = new Date().toISOString();\n\nconst sheetData = {\n  youtube_status: ytResult.status || 'Skipped',\n  youtube_video_id: ytResult.videoId || '',\n  youtube_url: ytResult.url || '',\n  discord_status: dcResult.status || 'Skipped',\n  discord_message_id: dcResult.messageId || '',\n  telegram_status: tgResult.status || 'Skipped',\n  telegram_message_id: tgResult.messageId || '',\n  instagram_status: igResult.status || 'Skipped',\n  instagram_media_id: igResult.mediaId || '',\n  instagram_url: igResult.url || '',\n  overall_publish_status: overallStatus,\n  last_publish_attempt: timestamp\n};\n\nreturn [{\n  json: {\n    fastApiBaseUrl: original.fastApiBaseUrl,\n    apiKey: original.apiKey,\n    spreadsheetUrl: original.spreadsheetUrl,\n    rowNumber: original.rowNumber,\n    sheetName: original.sheetName,\n    jobId: renderInfo.jobId || ('job_' + Math.random().toString(36).substring(2, 9)),\n    videoUrl: renderInfo.videoUrl || '',\n    downloadUrl: renderInfo.downloadUrl || renderInfo.videoUrl || '',\n    title: original.title || 'Motivational Short',\n    durationSeconds: Number(original.durationSeconds || 30),\n    overall_publish_status: overallStatus,\n    last_publish_attempt: timestamp,\n    publishingResults: {\n      youtube: ytResult,\n      discord: dcResult,\n      telegram: tgResult,\n      instagram: igResult\n    },\n    sheetData: sheetData\n  }\n}];"
+      },
+      "id": "node-collect-results-v2",
+      "name": "Collect All Publishing Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2920,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.fastApiBaseUrl + '/api/sheets/update-publishing' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "={{ $json.apiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  spreadsheetUrl: $json.spreadsheetUrl || '',\n  rowNumber: Number($json.rowNumber || 0),\n  publishingData: $json.sheetData,\n  sheetName: $json.sheetName || null\n}) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "node-update-google-sheet-v2",
+      "name": "Update Google Sheet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3160,
+        220
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  success: true,\n  status: 'completed',\n  jobId: $('Collect All Publishing Results').first().json.jobId,\n  videoUrl: $('Collect All Publishing Results').first().json.videoUrl,\n  downloadUrl: $('Collect All Publishing Results').first().json.downloadUrl,\n  title: $('Collect All Publishing Results').first().json.title,\n  durationSeconds: $('Collect All Publishing Results').first().json.durationSeconds,\n  publishing: {\n    overall_publish_status: $('Collect All Publishing Results').first().json.overall_publish_status,\n    last_publish_attempt: $('Collect All Publishing Results').first().json.last_publish_attempt,\n    youtube: $('Collect All Publishing Results').first().json.publishingResults.youtube,\n    discord: $('Collect All Publishing Results').first().json.publishingResults.discord,\n    telegram: $('Collect All Publishing Results').first().json.publishingResults.telegram,\n    instagram: $('Collect All Publishing Results').first().json.publishingResults.instagram\n  }\n}) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization, X-Requested-With, X-API-Key"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS, GET"
+              }
+            ]
+          }
+        }
+      },
+      "id": "node-respond-report-v2",
+      "name": "Return Final Publishing Report",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3400,
+        220
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook — Generate Short v2": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Is Input Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Input Valid?": {
+      "main": [
+        [
+          {
+            "node": "Download Source Video",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Validation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Source Video": {
+      "main": [
+        [
+          {
+            "node": "Download Soundtrack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Soundtrack": {
+      "main": [
+        [
+          {
+            "node": "Prepare Render Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Render Payload": {
+      "main": [
+        [
+          {
+            "node": "Render Short (FFmpeg)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render Short (FFmpeg)": {
+      "main": [
+        [
+          {
+            "node": "Is Render Successful?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Render Successful?": {
+      "main": [
+        [
+          {
+            "node": "Get Final MP4 and Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Render Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Final MP4 and Metadata": {
+      "main": [
+        [
+          {
+            "node": "Prepare Platform-Specific Captions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Platform-Specific Captions": {
+      "main": [
+        [
+          {
+            "node": "Publish to YouTube Shorts",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Discord",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Publish Instagram Reel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish to YouTube Shorts": {
+      "main": [
+        [
+          {
+            "node": "Format YouTube Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Discord": {
+      "main": [
+        [
+          {
+            "node": "Format Discord Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Format Telegram Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publish Instagram Reel": {
+      "main": [
+        [
+          {
+            "node": "Format Instagram Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format YouTube Result": {
+      "main": [
+        [
+          {
+            "node": "Collect All Publishing Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Discord Result": {
+      "main": [
+        [
+          {
+            "node": "Collect All Publishing Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Telegram Result": {
+      "main": [
+        [
+          {
+            "node": "Collect All Publishing Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Instagram Result": {
+      "main": [
+        [
+          {
+            "node": "Collect All Publishing Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect All Publishing Results": {
+      "main": [
+        [
+          {
+            "node": "Update Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "Return Final Publishing Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

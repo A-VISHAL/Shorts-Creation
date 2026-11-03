@@ -27,6 +27,11 @@ from typing import Any, Dict, List, Literal, Optional
 from urllib.parse import urlparse
 
 import httpx
+from dotenv import load_dotenv
+
+env_path = Path(__file__).parent / ".env"
+if env_path.is_file():
+    load_dotenv(dotenv_path=env_path, override=False)
 from fastapi import (
     BackgroundTasks,
     Depends,
@@ -46,6 +51,7 @@ from connection_manager import (
     validate_webhook_destination,
 )
 from sheets_service import sheets_service
+from publishing_service import publishing_service
 
 # -----------------------------------------------------------------------------
 # Configuration
@@ -458,6 +464,46 @@ class SpreadsheetUpdateStatusRequest(BaseModel):
     sheetName: Optional[str] = Field(None, description="Optional sheet/tab name")
     statusColumnName: Optional[str] = Field(None, description="Status column header name")
     outputColumnName: Optional[str] = Field(None, description="Output URL column header name")
+
+
+class PublishDispatchRequest(BaseModel):
+    videoUrl: str = Field(..., description="Local video filename or public HTTPS video URL")
+    title: str = Field("Motivational Short", description="Short title")
+    quote: str = Field(..., description="Motivational quote text")
+    platforms: Optional[Dict[str, bool]] = Field(
+        default_factory=lambda: {"youtube": True, "discord": True, "telegram": True, "instagram": True},
+        description="Target platforms to publish to",
+    )
+    youtubePrivacy: Optional[str] = Field("private", description="YouTube privacy: private, public, unlisted")
+    spreadsheetUrl: Optional[str] = Field(None, description="Optional Google Sheet URL to update")
+    rowNumber: Optional[int] = Field(None, description="Optional row number in Google Sheet")
+    sheetName: Optional[str] = Field(None, description="Optional sheet name")
+
+
+class SpreadsheetUpdatePublishingRequest(BaseModel):
+    spreadsheetUrl: str = Field(..., description="Google Sheets URL or ID")
+    rowNumber: int = Field(..., description="1-indexed row number in the sheet")
+    publishingData: Dict[str, Any] = Field(..., description="Publishing statuses and media URLs/IDs")
+    sheetName: Optional[str] = Field(None, description="Optional sheet/tab name")
+
+
+class SpreadsheetEnsureColumnsRequest(BaseModel):
+    spreadsheetUrl: str = Field(..., description="Google Sheets URL or ID")
+    sheetName: Optional[str] = Field(None, description="Optional sheet/tab name")
+
+
+class PlatformTestConnectionRequest(BaseModel):
+    platform: str = Field(..., description="Platform: youtube, discord, telegram, instagram")
+    credentials: Optional[Dict[str, str]] = Field(None, description="Optional credentials override to test")
+
+
+class PlatformConfigureRequest(BaseModel):
+    platform: str = Field(..., description="Platform: youtube, discord, telegram, instagram")
+    credentials: Dict[str, str] = Field(..., description="Credentials to save to backend/.env")
+
+
+class MediaVerifyRequest(BaseModel):
+    videoUrl: str = Field(..., description="Video URL or filename to verify")
 
 
 # -----------------------------------------------------------------------------
@@ -1149,6 +1195,144 @@ async def api_sheets_update_status(req: SpreadsheetUpdateStatusRequest) -> Any:
         output_column_name=req.outputColumnName,
     )
     return {"success": updated}
+
+
+@app.post(
+    "/api/sheets/update-publishing",
+    summary="Update multi-platform publishing status columns in Google Sheet",
+)
+async def api_sheets_update_publishing(req: SpreadsheetUpdatePublishingRequest) -> Any:
+    """Update all 12 publishing status columns in the original selected row in Google Sheets."""
+    updated = await sheets_service.update_row_publishing_status(
+        url_or_id=req.spreadsheetUrl,
+        row_number=req.rowNumber,
+        publishing_data=req.publishingData,
+        sheet_name=req.sheetName,
+    )
+    return {"success": updated}
+
+
+@app.post(
+    "/api/sheets/ensure-columns",
+    summary="Ensure the 12 required publishing columns exist in Google Sheet",
+)
+async def api_sheets_ensure_columns(req: SpreadsheetEnsureColumnsRequest) -> Any:
+    """Check if the 12 publishing columns exist in row 1, appending any missing columns."""
+    headers = await sheets_service.ensure_publishing_columns(
+        url_or_id=req.spreadsheetUrl,
+        sheet_name=req.sheetName,
+    )
+    return {"success": True, "headers": headers}
+
+
+# -----------------------------------------------------------------------------
+# Multi-Platform Publishing Endpoints
+# -----------------------------------------------------------------------------
+
+
+@app.get(
+    "/api/publish/status",
+    summary="Get multi-platform credentials readiness and verified connection status",
+)
+async def api_publish_status(force: bool = False) -> Any:
+    """Return configuration readiness and verified connection state for all platforms."""
+    return await publishing_service.get_all_connection_statuses(force_test=force)
+
+
+@app.post(
+    "/api/publish/test-connection",
+    summary="Run live authentication and API reachability test for a platform",
+)
+async def api_publish_test_connection(req: PlatformTestConnectionRequest) -> Any:
+    """Execute live test against platform API (YouTube, Discord, Telegram, or Instagram)."""
+    try:
+        res = await publishing_service.test_connection(req.platform, req.credentials)
+        return res
+    except Exception as e:
+        logger.error(f"Live connection test error for {req.platform}: {e}", exc_info=True)
+        return {
+            "platform": req.platform,
+            "connected": False,
+            "status": "Error",
+            "error": str(e),
+        }
+
+
+@app.post(
+    "/api/publish/configure",
+    summary="Save credentials to backend/.env and verify connection immediately",
+)
+async def api_publish_configure(req: PlatformConfigureRequest) -> Any:
+    """Store credentials securely into backend/.env, update environment, and verify."""
+    try:
+        res = await publishing_service.save_credentials(req.platform, req.credentials)
+        return res
+    except Exception as e:
+        logger.error(f"Failed to save credentials for {req.platform}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to save credentials for {req.platform}: {str(e)}",
+        )
+
+
+@app.post(
+    "/api/media/verify",
+    summary="Verify video file accessibility before publishing",
+)
+async def api_media_verify(req: MediaVerifyRequest) -> Any:
+    """Check whether local video file or HTTP video URL exists and is accessible."""
+    is_valid, err = await publishing_service.validate_video_file(req.videoUrl)
+    return {"valid": is_valid, "error": err}
+
+
+@app.post(
+    "/api/publish/dispatch",
+    summary="Publish short to YouTube, Discord, Telegram, and Instagram simultaneously",
+)
+async def api_publish_dispatch(req: PublishDispatchRequest, request: Request) -> Any:
+    """Dispatch video publishing to all selected platforms in parallel and update Google Sheets."""
+    base_url = connection_manager.active_tunnel_url or get_public_base_url(request)
+    try:
+        report = await publishing_service.publish_all(
+            video_path_or_url=req.videoUrl,
+            title=req.title,
+            quote=req.quote,
+            platforms=req.platforms,
+            youtube_privacy=req.youtubePrivacy or "private",
+            public_base_url=base_url,
+        )
+    except FileNotFoundError as fnf:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Video file not found: {str(fnf)}",
+        )
+    except Exception as e:
+        logger.error(f"Publish dispatch error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Publish dispatch failed: {str(e)}",
+        )
+
+    sheet_updated = False
+    if req.spreadsheetUrl and req.rowNumber:
+        try:
+            sheet_updated = await sheets_service.update_row_publishing_status(
+                url_or_id=req.spreadsheetUrl,
+                row_number=req.rowNumber,
+                publishing_data=report["sheetData"],
+                sheet_name=req.sheetName,
+            )
+        except Exception as se:
+            logger.warning(f"Could not update Google Sheet after publishing: {se}")
+
+    return {
+        "success": True,
+        "overallStatus": report["overall_publish_status"],
+        "lastPublishAttempt": report["last_publish_attempt"],
+        "platforms": report["platforms"],
+        "sheetUpdated": sheet_updated,
+        "sheetData": report["sheetData"],
+    }
 
 
 @app.post(

@@ -24,8 +24,10 @@ import {
   Sun,
   Moon,
   FileSpreadsheet,
+  Share2,
 } from 'lucide-react';
 import { GoogleSheetsMode } from './GoogleSheetsMode';
+import { PublishingDashboard } from './PublishingDashboard';
 import {
   generateShort,
   fetchHealth,
@@ -110,11 +112,20 @@ export function App() {
     localStorage.setItem('shorts_theme', theme);
   }, [theme]);
 
-  // Active Mode State (Manual Mode vs. Google Sheets Mode)
-  const [activeMode, setActiveMode] = useState<'manual' | 'sheets'>(() => {
+  // Active Mode State (Manual Mode vs. Google Sheets Mode vs. Publishing Dashboard)
+  const [activeMode, setActiveMode] = useState<'manual' | 'sheets' | 'publishing'>(() => {
     const saved = localStorage.getItem('shorts_studio_mode');
-    return saved === 'sheets' ? 'sheets' : 'manual';
+    return saved === 'sheets' || saved === 'publishing' ? saved : 'manual';
   });
+
+  const [publishTarget, setPublishTarget] = useState<{
+    videoUrl?: string;
+    title?: string;
+    quote?: string;
+    spreadsheetUrl?: string;
+    rowNumber?: number;
+    sheetName?: string;
+  }>({});
 
   useEffect(() => {
     localStorage.setItem('shorts_studio_mode', activeMode);
@@ -357,7 +368,7 @@ export function App() {
             </div>
           </div>
 
-          {/* Navigation Modes: Manual Mode vs. Google Sheets Mode */}
+          {/* Navigation Modes: Manual Mode vs. Google Sheets Mode vs. Publishing Dashboard */}
           <nav className="header-nav-modes">
             <button
               type="button"
@@ -374,7 +385,15 @@ export function App() {
             >
               <FileSpreadsheet size={15} className="nav-mode-icon" />
               <span>Google Sheets Mode</span>
-              <span className="nav-mode-badge-new">NEW</span>
+            </button>
+            <button
+              type="button"
+              className={`nav-mode-btn ${activeMode === 'publishing' ? 'active' : ''}`}
+              onClick={() => setActiveMode('publishing')}
+            >
+              <Share2 size={15} className="nav-mode-icon" />
+              <span>Publishing Dashboard</span>
+              <span className="nav-mode-badge-new">4 PLATFORMS</span>
             </button>
           </nav>
 
@@ -432,7 +451,17 @@ export function App() {
           MAIN STUDIO WORKSPACE
           ==================================================================== */}
       <main className="studio-layout">
-        {activeMode === 'sheets' ? (
+        {activeMode === 'publishing' ? (
+          <PublishingDashboard
+            initialVideoUrl={publishTarget.videoUrl || result?.videoUrl || result?.downloadUrl || ''}
+            initialTitle={publishTarget.title || title || 'Motivational Short'}
+            initialQuote={publishTarget.quote || quoteText || ''}
+            spreadsheetUrl={publishTarget.spreadsheetUrl}
+            rowNumber={publishTarget.rowNumber}
+            sheetName={publishTarget.sheetName}
+            showToast={showToast}
+          />
+        ) : activeMode === 'sheets' ? (
           <>
             <div className="workspace-intro">
               <div className="intro-text">
@@ -454,7 +483,21 @@ export function App() {
               </div>
             </div>
 
-            <GoogleSheetsMode config={config} showToast={showToast} />
+            <GoogleSheetsMode
+              config={config}
+              showToast={showToast}
+              onPublishToDashboard={(vUrl, vTitle, vQuote, vRow, vSheet) => {
+                setPublishTarget({
+                  videoUrl: vUrl,
+                  title: vTitle,
+                  quote: vQuote,
+                  rowNumber: vRow,
+                  sheetName: vSheet,
+                });
+                setActiveMode('publishing');
+                showToast(`Loaded row #${vRow} into Publishing Dashboard`);
+              }}
+            />
           </>
         ) : (
           <>
@@ -856,6 +899,24 @@ export function App() {
                     >
                       {copied ? <Check size={15} color="var(--status-success)" /> : <Copy size={15} />}
                       <span>{copied ? 'Copied' : 'Copy URL'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-action-primary"
+                      style={{ background: 'linear-gradient(135deg, var(--accent-primary), #8b5cf6)' }}
+                      onClick={() => {
+                        setPublishTarget({
+                          videoUrl: result.videoUrl || result.downloadUrl,
+                          title: result.title || title || 'Motivational Short',
+                          quote: quoteText,
+                        });
+                        setActiveMode('publishing');
+                        showToast('Loaded video into Publishing Dashboard');
+                      }}
+                    >
+                      <Share2 size={15} />
+                      <span>Publish Short</span>
                     </button>
                   </div>
                 </div>

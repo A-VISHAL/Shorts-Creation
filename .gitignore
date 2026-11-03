@@ -23,6 +23,8 @@ backend/media/*.webm
 backend/media/dl_*
 backend/media/rendered_*
 !backend/media/.gitkeep
+media/
+
 
 # Operating System
 .DS_Store

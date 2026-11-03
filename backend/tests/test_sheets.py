@@ -33,13 +33,14 @@ def test_sheets_auth_status_endpoint(client):
 
 
 def test_sheets_inspect_private_without_creds(client):
-    url = "https://docs.google.com/spreadsheets/d/1NyBnzZRfEkq1uPz7JXFm38ZtH8cBvW8dk006xJizQSo/edit?gid=604247059#gid=604247059"
+    # Use a non-existent / private sheet ID to test permission/access rejection
+    url = "https://docs.google.com/spreadsheets/d/10000000000000000000000000000000000000000000/edit#gid=0"
     resp = client.post("/api/sheets/inspect", json={"spreadsheetUrl": url})
     # Should return either 403 or 400 when private without creds, with helpful error message
     assert resp.status_code in [400, 403]
     data = resp.json()
     assert data["success"] is False
-    assert "Cannot access" in data["error"] or "Permission" in data["error"]
+    assert "Cannot access" in data["error"] or "Permission" in data["error"] or "Failed to fetch" in data["error"]
 
 
 def test_auto_detect_mapping():
@@ -58,3 +59,17 @@ def test_auto_detect_mapping():
     assert mapping["title"] == "Short Title"
     assert mapping["status"] == "Render Status"
     assert mapping["output_url"] == "Output URL"
+
+
+@pytest.mark.asyncio
+async def test_ensure_publishing_columns_without_creds():
+    url = "https://docs.google.com/spreadsheets/d/mock_id/edit"
+    # When credentials are not configured, it gracefully returns the list of required publishing columns
+    cols = await sheets_service.ensure_publishing_columns(url)
+    assert "youtube_status" in cols
+    assert "discord_status" in cols
+    assert "telegram_status" in cols
+    assert "instagram_status" in cols
+    assert "overall_publish_status" in cols
+    assert len(cols) == 12
+

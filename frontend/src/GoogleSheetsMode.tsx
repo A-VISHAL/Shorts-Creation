@@ -20,6 +20,7 @@ import {
   Clock,
   X,
   Info,
+  Share2,
 } from 'lucide-react';
 import {
   DEFAULT_SPREADSHEET_URL,
@@ -41,9 +42,10 @@ interface GoogleSheetsModeProps {
   config: StudioConfig;
   showToast: (msg: string) => void;
   onPreviewShort?: (url: string, title: string) => void;
+  onPublishToDashboard?: (videoUrl: string, title: string, quote: string, rowNumber: number, sheetName?: string) => void;
 }
 
-export function GoogleSheetsMode({ config, showToast }: GoogleSheetsModeProps) {
+export function GoogleSheetsMode({ config, showToast, onPublishToDashboard }: GoogleSheetsModeProps) {
   // Spreadsheet Connection State
   const [spreadsheetUrl, setSpreadsheetUrl] = useState<string>(DEFAULT_SPREADSHEET_URL);
   const [authStatus, setAuthStatus] = useState<SheetsAuthStatus | null>(null);
@@ -923,6 +925,27 @@ export function GoogleSheetsMode({ config, showToast }: GoogleSheetsModeProps) {
                     {copiedUrl ? <Check size={15} color="var(--status-success)" /> : <Copy size={15} />}
                     <span>{copiedUrl ? 'Copied' : 'Copy URL'}</span>
                   </button>
+
+                  {onPublishToDashboard && (
+                    <button
+                      type="button"
+                      className="btn-action-primary"
+                      style={{ background: 'linear-gradient(135deg, var(--accent-primary), #8b5cf6)' }}
+                      onClick={() =>
+                        onPublishToDashboard(
+                          currentPreview.videoUrl,
+                          currentPreview.title,
+                          currentPreview.quote,
+                          currentPreview.rowNumber,
+                          selectedSheet
+                        )
+                      }
+                      title="Publish to YouTube, Discord, Telegram, Instagram"
+                    >
+                      <Share2 size={15} />
+                      <span>Publish Short</span>
+                    </button>
+                  )}
                 </div>
               </div>
             )}

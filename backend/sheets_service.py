@@ -458,6 +458,8 @@ class GoogleSheetsService:
             if not video_val:
                 invalid_reasons.append("Missing video URL")
 
+            publishing = {col: row_dict.get(col, "").strip() for col in PUBLISHING_COLUMNS}
+
             rows_result.append({
                 "rowNumber": idx,
                 "quote": quote_val,
@@ -468,6 +470,7 @@ class GoogleSheetsService:
                 "outputUrl": output_val,
                 "isValid": is_valid,
                 "invalidReason": ", ".join(invalid_reasons) if invalid_reasons else None,
+                "publishing": publishing,
                 "raw": row_dict,
             })
 
@@ -536,6 +539,125 @@ class GoogleSheetsService:
             logger.warning(f"Could not update row {row_number} in Google Sheet: {e}")
             return False
 
+    async def ensure_publishing_columns(
+        self,
+        url_or_id: str,
+        sheet_name: Optional[str] = None,
+    ) -> List[str]:
+        """Ensure the 12 required publishing columns exist in the sheet's header row.
+
+        Appends any missing columns to row 1.
+        """
+        auth_info = self.get_auth_status()
+        if not auth_info["configured"]:
+            logger.info("Service Account not configured; skipping column check.")
+            return list(PUBLISHING_COLUMNS)
+
+        try:
+            sheet_id, gid = extract_spreadsheet_id_and_gid(url_or_id)
+            client = self._get_gspread_client()
+            spreadsheet = client.open_by_key(sheet_id)
+
+            if sheet_name:
+                ws = spreadsheet.worksheet(sheet_name)
+            elif gid is not None:
+                ws = next((w for w in spreadsheet.worksheets() if w.id == gid), spreadsheet.sheet1)
+            else:
+                ws = spreadsheet.sheet1
+
+            existing_headers = ws.row_values(1)
+            norm_existing = {h.strip().lower(): h for h in existing_headers if h}
+
+            missing_cols = []
+            for col in PUBLISHING_COLUMNS:
+                if col.lower() not in norm_existing:
+                    missing_cols.append(col)
+
+            if missing_cols:
+                start_col = len(existing_headers) + 1
+                for idx, col_name in enumerate(missing_cols):
+                    ws.update_cell(1, start_col + idx, col_name)
+                logger.info(f"Added {len(missing_cols)} publishing columns to sheet '{ws.title}': {missing_cols}")
+                existing_headers.extend(missing_cols)
+
+            return existing_headers
+        except Exception as e:
+            logger.warning(f"Could not verify or add publishing columns: {e}")
+            return []
+
+    async def update_row_publishing_status(
+        self,
+        url_or_id: str,
+        row_number: int,
+        publishing_data: Dict[str, Any],
+        sheet_name: Optional[str] = None,
+    ) -> bool:
+        """Update publishing status columns for a specific row in Google Sheet.
+
+        Expected fields in publishing_data:
+        - youtube_status, youtube_video_id, youtube_url
+        - discord_status, discord_message_id
+        - telegram_status, telegram_message_id
+        - instagram_status, instagram_media_id, instagram_url
+        - overall_publish_status, last_publish_attempt
+        """
+        auth_info = self.get_auth_status()
+        if not auth_info["configured"]:
+            logger.info("Service Account not configured; skipping publishing status update in Google Sheet.")
+            return False
+
+        try:
+            sheet_id, gid = extract_spreadsheet_id_and_gid(url_or_id)
+            client = self._get_gspread_client()
+            spreadsheet = client.open_by_key(sheet_id)
+
+            if sheet_name:
+                ws = spreadsheet.worksheet(sheet_name)
+            elif gid is not None:
+                ws = next((w for w in spreadsheet.worksheets() if w.id == gid), spreadsheet.sheet1)
+            else:
+                ws = spreadsheet.sheet1
+
+            headers = ws.row_values(1)
+            norm_headers = {h.strip().lower(): idx + 1 for idx, h in enumerate(headers) if h}
+
+            # If publishing headers are missing, auto-create them
+            missing = [c for c in PUBLISHING_COLUMNS if c.lower() not in norm_headers]
+            if missing:
+                start_col = len(headers) + 1
+                for idx, col_name in enumerate(missing):
+                    ws.update_cell(1, start_col + idx, col_name)
+                    norm_headers[col_name.lower()] = start_col + idx
+
+            # Update cells
+            for field, val in publishing_data.items():
+                if field.lower() in norm_headers and val is not None:
+                    col_idx = norm_headers[field.lower()]
+                    str_val = str(val) if val != "" else ""
+                    ws.update_cell(row_number, col_idx, str_val)
+
+            logger.info(f"Updated row {row_number} publishing columns in sheet '{ws.title}'.")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update publishing status in sheet for row {row_number}: {e}")
+            return False
+
+
+PUBLISHING_COLUMNS = [
+    "youtube_status",
+    "youtube_video_id",
+    "youtube_url",
+    "discord_status",
+    "discord_message_id",
+    "telegram_status",
+    "telegram_message_id",
+    "instagram_status",
+    "instagram_media_id",
+    "instagram_url",
+    "overall_publish_status",
+    "last_publish_attempt",
+]
 
 # Singleton instance
 sheets_service = GoogleSheetsService()
+

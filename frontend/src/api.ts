@@ -522,3 +522,262 @@ export async function updateSpreadsheetRowStatus(
     return false;
   }
 }
+
+// ==============================================================================
+// MULTI-PLATFORM PUBLISHING CLIENT
+// ==============================================================================
+
+export interface PlatformPublishResult {
+  platform: 'youtube' | 'discord' | 'telegram' | 'instagram';
+  status: 'Pending' | 'Processing' | 'Published' | 'Failed' | 'Skipped';
+  videoId?: string;
+  messageId?: string;
+  mediaId?: string;
+  url?: string;
+  privacy?: string;
+  error?: string | null;
+}
+
+export interface MultiPlatformPublishReport {
+  success: boolean;
+  overallStatus: 'Completed' | 'Partially Completed' | 'Failed' | 'Skipped';
+  lastPublishAttempt: string;
+  platforms: {
+    youtube: PlatformPublishResult;
+    discord: PlatformPublishResult;
+    telegram: PlatformPublishResult;
+    instagram: PlatformPublishResult;
+  };
+  sheetUpdated?: boolean;
+  sheetData?: Record<string, any>;
+}
+
+export interface PlatformConnectionDetail {
+  platform: 'youtube' | 'discord' | 'telegram' | 'instagram' | string;
+  connected: boolean;
+  status: 'Not Connected' | 'Connected' | 'Testing' | 'Error' | string;
+  missingKeys: string[];
+  requiredKeys: string[];
+  accountName?: string | null;
+  error?: string | null;
+  testedAt?: string | null;
+  isDefault?: boolean;
+}
+
+export interface PublishingConnectionsStatus {
+  youtube: PlatformConnectionDetail;
+  discord: PlatformConnectionDetail;
+  telegram: PlatformConnectionDetail;
+  instagram: PlatformConnectionDetail;
+}
+
+export interface PlatformTestResult {
+  platform: string;
+  connected: boolean;
+  status: 'Not Connected' | 'Connected' | 'Error';
+  missingKeys?: string[];
+  accountName?: string | null;
+  error?: string | null;
+  testedAt?: string;
+}
+
+export interface PlatformConfigureResult {
+  saved: boolean;
+  platform: string;
+  testResult: PlatformTestResult;
+}
+
+export interface MediaVerifyResult {
+  valid: boolean;
+  error: string | null;
+}
+
+export interface PublishDispatchRequestPayload {
+  videoUrl: string;
+  title: string;
+  quote: string;
+  platforms?: {
+    youtube: boolean;
+    discord: boolean;
+    telegram: boolean;
+    instagram: boolean;
+  };
+  youtubePrivacy?: 'private' | 'public' | 'unlisted';
+  spreadsheetUrl?: string;
+  rowNumber?: number;
+  sheetName?: string;
+}
+
+/**
+ * Fetch verified status of credentials / connections for YouTube, Discord, Telegram, and Instagram.
+ * Pass force=true to trigger immediate live re-authentication tests against platform APIs.
+ */
+export async function fetchPublishingStatus(
+  force: boolean = false,
+  baseUrl: string = LOCAL_BACKEND_URL
+): Promise<PublishingConnectionsStatus> {
+  const cleanUrl = normalizeUrl(baseUrl);
+  const target = `${cleanUrl}/api/publish/status?force=${force ? 'true' : 'false'}`;
+  const response = await fetch(target, { method: 'GET' });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} fetching publishing connection statuses`);
+  }
+  return await response.json();
+}
+
+/**
+ * Execute live connection test against a specific platform.
+ */
+export async function testPlatformConnection(
+  platform: string,
+  credentials?: Record<string, string>,
+  baseUrl: string = LOCAL_BACKEND_URL
+): Promise<PlatformTestResult> {
+  const cleanUrl = normalizeUrl(baseUrl);
+  const target = `${cleanUrl}/api/publish/test-connection`;
+  const response = await fetch(target, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      platform: platform.toLowerCase(),
+      credentials: credentials || {},
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || data.error || `Connection test failed (HTTP ${response.status})`);
+  }
+  return data;
+}
+
+/**
+ * Save credentials securely to backend/.env and verify connection immediately.
+ */
+export async function configurePlatform(
+  platform: string,
+  credentials: Record<string, string>,
+  baseUrl: string = LOCAL_BACKEND_URL
+): Promise<PlatformConfigureResult> {
+  const cleanUrl = normalizeUrl(baseUrl);
+  const target = `${cleanUrl}/api/publish/configure`;
+  const response = await fetch(target, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      platform: platform.toLowerCase(),
+      credentials,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || data.error || `Configuration failed (HTTP ${response.status})`);
+  }
+  return data;
+}
+
+/**
+ * Verify video file or URL accessibility before initiating publishing.
+ */
+export async function verifyMediaFile(
+  videoUrl: string,
+  baseUrl: string = LOCAL_BACKEND_URL
+): Promise<MediaVerifyResult> {
+  const cleanUrl = normalizeUrl(baseUrl);
+  const target = `${cleanUrl}/api/media/verify`;
+  const response = await fetch(target, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ videoUrl: videoUrl.trim() }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || `Video verification failed (HTTP ${response.status})`);
+  }
+  return data;
+}
+
+/**
+ * Dispatch multi-platform publishing in parallel to selected platforms.
+ */
+export async function dispatchPublish(
+  payload: PublishDispatchRequestPayload,
+  baseUrl: string = LOCAL_BACKEND_URL
+): Promise<MultiPlatformPublishReport> {
+  const cleanUrl = normalizeUrl(baseUrl);
+  const target = `${cleanUrl}/api/publish/dispatch`;
+
+  const response = await fetch(target, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+  if (!response.ok || data.success === false) {
+    throw new Error(data.detail || data.error || `Publishing dispatch failed (HTTP ${response.status})`);
+  }
+  return data;
+}
+
+/**
+ * Update multi-platform publishing status columns in Google Sheet.
+ */
+export async function updateGoogleSheetPublishing(
+  spreadsheetUrl: string,
+  rowNumber: number,
+  publishingData: Record<string, any>,
+  sheetName?: string,
+  baseUrl: string = LOCAL_BACKEND_URL
+): Promise<boolean> {
+  const cleanUrl = normalizeUrl(baseUrl);
+  const target = `${cleanUrl}/api/sheets/update-publishing`;
+
+  try {
+    const response = await fetch(target, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        spreadsheetUrl: spreadsheetUrl.trim(),
+        rowNumber,
+        publishingData,
+        sheetName: sheetName || null,
+      }),
+    });
+    const data = await response.json();
+    return Boolean(data.success);
+  } catch (err) {
+    console.warn('Could not update sheet publishing columns:', err);
+    return false;
+  }
+}
+
+/**
+ * Ensure all 12 publishing columns exist in Google Sheet.
+ */
+export async function ensureGoogleSheetPublishingColumns(
+  spreadsheetUrl: string,
+  sheetName?: string,
+  baseUrl: string = LOCAL_BACKEND_URL
+): Promise<{ success: boolean; headers: string[] }> {
+  const cleanUrl = normalizeUrl(baseUrl);
+  const target = `${cleanUrl}/api/sheets/ensure-columns`;
+
+  const response = await fetch(target, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      spreadsheetUrl: spreadsheetUrl.trim(),
+      sheetName: sheetName || null,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.detail || 'Failed to verify spreadsheet columns');
+  }
+  return data;
+}
+

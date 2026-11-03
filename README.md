@@ -49,18 +49,22 @@ motivational-shorts-studio/
 ├── backend/
 │   ├── app.py                     # Complete FastAPI server, security, FFmpeg engine & Webhook proxy
 │   ├── connection_manager.py      # Automated lifecycle manager for backend, Cloudflare Tunnel & auto-reconnect
+│   ├── publishing_service.py      # Multi-platform publishing engine (YouTube, Discord, Telegram, Instagram)
+│   ├── sheets_service.py          # Google Sheets integration & 12-column publishing updater
 │   ├── requirements.txt           # Python dependencies
-│   ├── .env.example               # Backend configuration template
+│   ├── .env.example               # Backend configuration template with publishing credentials
 │   ├── .env                       # Local environment configuration
 │   ├── pytest.ini                 # Pytest runner configuration
 │   ├── media/                     # Storage directory for downloads and outputs
 │   └── tests/
 │       ├── conftest.py            # Synthetic media fixtures (FFmpeg-generated)
 │       ├── test_connection_manager.py # Lifecycle, tunnel parsing, backoff, SSRF & health tests
+│       ├── test_publishing.py     # Independent parallel publishing, size limits, captions & dispatch tests
+│       ├── test_sheets.py         # Google Sheets inspection & 12-column status tests
 │       ├── test_health_and_auth.py# Status, health, and X-API-Key tests
 │       ├── test_validation_and_ssrf.py # Input bounds, scheme, and SSRF tests
 │       ├── test_render_e2e.py     # Real FFmpeg rendering and probe test
-│       ├── test_workflow_json.py  # n8n workflow export structure test
+│       ├── test_workflow_json.py  # Validation tests for both v1 and v2 n8n workflows
 │       └── test_proxy.py          # Webhook proxy and tunnel header tests
 ├── frontend/
 │   ├── package.json               # Frontend dependencies (React, Vite, Lucide)
@@ -71,13 +75,17 @@ motivational-shorts-studio/
 │   ├── .env                       # Frontend local environment
 │   └── src/
 │       ├── main.tsx               # React DOM entrypoint
-│       ├── App.tsx                # Motivational Shorts Studio dashboard
+│       ├── App.tsx                # Motivational Shorts Studio master dashboard
+│       ├── GoogleSheetsMode.tsx   # Google Sheets automated production mode
+│       ├── PublishingDashboard.tsx# Multi-platform autonomous publishing dashboard
 │       ├── api.ts                 # Typed API client, persistent storage & CORS proxy
 │       ├── styles.css             # Dark cinematic responsive UI stylesheet
 │       └── vite-env.d.ts          # Vite environment type definitions
 ├── n8n/
-│   ├── motivational-shorts-workflow.json # Importable standard n8n workflow JSON
-│   └── README.md                  # n8n setup guide, credential & node reference
+│   ├── motivational-shorts-workflow.json    # Original v1 video rendering workflow JSON
+│   ├── motivational-shorts-workflow-v2.json # New v2 multi-platform automated publishing workflow JSON
+│   └── README.md                  # Comprehensive setup guide, credential & node reference
+
 ├── scripts/
 │   ├── start-dev.sh               # Coordinated runner (FastAPI + Vite + Cloudflare Tunnel)
 │   ├── run-local.sh               # Local server runner
