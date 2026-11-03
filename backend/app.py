@@ -88,6 +88,40 @@ settings = Settings()
 MEDIA_PATH = Path(settings.media_dir).resolve()
 MEDIA_PATH.mkdir(parents=True, exist_ok=True)
 
+
+def ensure_sample_media_files() -> None:
+    """Ensure essential demo and sample assets exist in MEDIA_PATH."""
+    try:
+        MEDIA_PATH.mkdir(parents=True, exist_ok=True)
+        root_media_dir = (Path(__file__).resolve().parent.parent / "media").resolve()
+
+        # Check and copy from root media dir if present
+        for asset_name in ("test_source_vid.mp4", "test_source_aud.mp3"):
+            dest_file = MEDIA_PATH / asset_name
+            if not dest_file.is_file() and root_media_dir.is_dir():
+                src_file = root_media_dir / asset_name
+                if src_file.is_file():
+                    shutil.copy(src_file, dest_file)
+                    logger.info(f"Initialized sample asset from root: {asset_name}")
+
+        # Provide legacy demo alias dl_video_7a92c74aa4.mp4 from test_source_vid.mp4 or other mp4
+        legacy_demo = MEDIA_PATH / "dl_video_7a92c74aa4.mp4"
+        if not legacy_demo.is_file():
+            source_candidates = [
+                MEDIA_PATH / "test_source_vid.mp4",
+                MEDIA_PATH / "sample_demo.mp4",
+            ] + list(MEDIA_PATH.glob("*.mp4"))
+            for cand in source_candidates:
+                if cand.is_file() and cand.name != "dl_video_7a92c74aa4.mp4":
+                    shutil.copy(cand, legacy_demo)
+                    logger.info(f"Created fallback demo file: {legacy_demo.name} from {cand.name}")
+                    break
+    except Exception as e:
+        logger.warning(f"Failed to auto-seed sample media files: {e}")
+
+
+ensure_sample_media_files()
+
 # Callback to dynamically update settings when Cloudflare Tunnel URL changes
 def on_tunnel_url_updated(url: str) -> None:
     settings.public_base_url = url
@@ -100,6 +134,7 @@ connection_manager.settings_callback = on_tunnel_url_updated
 async def lifespan(app: FastAPI):
     """Lifecycle manager for FastAPI and the background Cloudflare Tunnel."""
     logger.info("Initializing Backend Connection Manager & Cloudflare Tunnel...")
+    ensure_sample_media_files()
     await connection_manager.start_supervision()
     yield
     logger.info("Shutting down Backend Connection Manager...")
@@ -735,6 +770,31 @@ async def resolve_or_download_media(url: str, media_type: str, request: Optional
             logger.info(f"Reusing already downloaded local media file: {filename}")
             return local_file
 
+        # Fallback 1: Check root /media/ directory if running from backend/
+        root_media_file = (Path(__file__).resolve().parent.parent / "media" / filename).resolve()
+        if root_media_file.is_file():
+            logger.info(f"Reusing media file from root media directory: {filename}")
+            shutil.copy(root_media_file, local_file)
+            return local_file
+
+        # Fallback 2: If requesting legacy demo placeholder dl_video_7a92c74aa4.mp4, alias to test_source_vid.mp4
+        if filename in ("dl_video_7a92c74aa4.mp4", "sample_demo.mp4"):
+            fallback_vid = MEDIA_PATH / "test_source_vid.mp4"
+            if fallback_vid.is_file():
+                logger.info(f"Aliasing legacy demo video {filename} to {fallback_vid.name}")
+                shutil.copy(fallback_vid, local_file)
+                return local_file
+
+        # If it's a local media URL pointing to /media/{filename} and it does NOT exist:
+        # DO NOT fall through to step 2/3 (which would attempt an HTTP loopback GET that 404s).
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=(
+                f"Local media file '{filename}' was not found in media storage. "
+                "If you are using a preset, please reselect the preset or provide a valid source video/music URL."
+            ),
+        )
+
     # 2. Check if it is a direct media file (e.g., .mp4, .mp3, etc.)
     parsed_path = urlparse(url).path.lower()
     is_direct_video = any(parsed_path.endswith(ext) for ext in (".mp4", ".mov", ".webm", ".mkv"))
@@ -887,6 +947,9 @@ async def render_short_video(
 
         filter_complex = f"{video_filters};{audio_filters}"
 
+        # Target bitrate cap to ensure output video stays safely under Discord's 25 MB limit
+        target_bitrate_kbps = min(4500, max(1200, int((20 * 1024 * 8) / max(1, duration))))
+
         cmd = [
             "ffmpeg",
             "-y",  # Overwrite output without asking
@@ -910,6 +973,12 @@ async def render_short_video(
             "libx264",
             "-preset",
             "veryfast",
+            "-crf",
+            "24",
+            "-maxrate",
+            f"{target_bitrate_kbps}k",
+            "-bufsize",
+            f"{target_bitrate_kbps * 2}k",
             "-pix_fmt",
             "yuv420p",
             "-movflags",
@@ -992,8 +1061,17 @@ def cleanup_expired_media() -> None:
     try:
         now = time.time()
         max_age_seconds = settings.media_retention_hours * 3600
+        protected_files = {
+            "test_source_vid.mp4",
+            "test_source_aud.mp3",
+            "dl_video_7a92c74aa4.mp4",
+            "sample_demo.mp4",
+            ".gitkeep",
+        }
         for item in MEDIA_PATH.iterdir():
             if item.is_file():
+                if item.name in protected_files or item.name.startswith("sample_") or item.name.startswith("test_source_"):
+                    continue
                 age = now - item.stat().st_mtime
                 if age > max_age_seconds:
                     logger.info(f"Removing expired media file: {item.name} (age: {age/3600:.1f}h)")
@@ -1607,6 +1685,16 @@ async def serve_media(filename: str, request: Request):
     # Sanitize and resolve file path
     safe_name = os.path.basename(filename)
     target_path = (MEDIA_PATH / safe_name).resolve()
+
+    # If missing, check root media dir or legacy demo fallback
+    if not target_path.is_file():
+        root_media_file = (Path(__file__).resolve().parent.parent / "media" / safe_name).resolve()
+        if root_media_file.is_file():
+            shutil.copy(root_media_file, target_path)
+        elif safe_name in ("dl_video_7a92c74aa4.mp4", "sample_demo.mp4"):
+            fallback_vid = MEDIA_PATH / "test_source_vid.mp4"
+            if fallback_vid.is_file():
+                shutil.copy(fallback_vid, target_path)
 
     # Prevent directory traversal attacks
     if not target_path.is_relative_to(MEDIA_PATH) or not target_path.is_file():

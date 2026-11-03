@@ -94,3 +94,25 @@ def test_media_path_traversal_protection(client: TestClient):
 
     response = client.get("/media/..%2F..%2Fetc%2Fpasswd")
     assert response.status_code in (404, 400)
+
+
+@pytest.mark.asyncio
+async def test_local_media_resolution_known_assets():
+    import app
+
+    vid = await app.resolve_or_download_media("http://localhost:8000/media/test_source_vid.mp4", "video")
+    assert vid.is_file()
+
+    aud = await app.resolve_or_download_media("http://localhost:8000/media/test_source_aud.mp3", "audio")
+    assert aud.is_file()
+
+
+@pytest.mark.asyncio
+async def test_local_media_resolution_nonexistent_raises_404():
+    import app
+    from fastapi import HTTPException
+
+    with pytest.raises(HTTPException) as exc_info:
+        await app.resolve_or_download_media("http://localhost:8000/media/nonexistent_video_12345.mp4", "video")
+    assert exc_info.value.status_code == 404
+    assert "was not found in media storage" in exc_info.value.detail

@@ -60,12 +60,23 @@ interface PlatformConfigMeta {
   }[];
 }
 
+export const DEFAULT_YOUTUBE_CLIENT_ID =
+  (import.meta.env.VITE_DEFAULT_YOUTUBE_CLIENT_ID as string) || '';
+export const DEFAULT_YOUTUBE_CLIENT_SECRET =
+  (import.meta.env.VITE_DEFAULT_YOUTUBE_CLIENT_SECRET as string) || '';
+
 export const DEFAULT_DISCORD_WEBHOOK_URL =
-  'https://discord.com/api/webhooks/1566147524891377846/dXkNoX_h4o-aMNOJTaoOe4gPGGgmSMDUqaI2iYLpveFleZitlM6-4TcsvddQ_0SKCaEh';
+  (import.meta.env.VITE_DEFAULT_DISCORD_WEBHOOK_URL as string) || '';
 
 export const DEFAULT_TELEGRAM_BOT_TOKEN =
-  '9004895062:AAGZS4lwUumLy0130bOFwj7dZLM1dHWSK2I';
-export const DEFAULT_TELEGRAM_CHAT_ID = '@lukizerkshorts';
+  (import.meta.env.VITE_DEFAULT_TELEGRAM_BOT_TOKEN as string) || '';
+export const DEFAULT_TELEGRAM_CHAT_ID =
+  (import.meta.env.VITE_DEFAULT_TELEGRAM_CHAT_ID as string) || '@lukizerkshorts';
+
+export const DEFAULT_INSTAGRAM_ACCOUNT_ID =
+  (import.meta.env.VITE_DEFAULT_INSTAGRAM_ACCOUNT_ID as string) || '';
+export const DEFAULT_META_ACCESS_TOKEN =
+  (import.meta.env.VITE_DEFAULT_META_ACCESS_TOKEN as string) || '';
 
 const PLATFORM_CONFIG_DEFINITIONS: Record<PlatformKey, PlatformConfigMeta> = {
   youtube: {
@@ -141,15 +152,15 @@ const PLATFORM_CONFIG_DEFINITIONS: Record<PlatformKey, PlatformConfigMeta> = {
       {
         key: 'INSTAGRAM_ACCOUNT_ID',
         label: 'Instagram Professional Account ID',
-        placeholder: 'e.g. 17841400000000000',
-        hint: 'Professional/Business account ID linked to your Facebook page',
+        placeholder: 'e.g. 17841475233786072 (leave empty to use default)',
+        hint: 'Default account ID is configured in backend/.env. If you paste a custom account ID here, it overrides the default; otherwise the system default is used.',
       },
       {
         key: 'META_ACCESS_TOKEN',
         label: 'Meta Graph User / Page Access Token',
-        placeholder: 'EAABxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...',
+        placeholder: 'Paste custom token here (leave empty to use default)',
         isSecret: true,
-        hint: 'Long-lived token with instagram_content_publish & instagram_basic permissions',
+        hint: 'Default access token is configured in backend/.env. If you paste a custom token here, it overrides the default; otherwise the system default is used.',
       },
     ],
   },
@@ -294,6 +305,10 @@ export function PublishingDashboard({
     def.fields.forEach((f) => {
       initialForm[f.key] = '';
     });
+    if (platformKey === 'youtube') {
+      initialForm['YOUTUBE_CLIENT_ID'] = DEFAULT_YOUTUBE_CLIENT_ID;
+      initialForm['YOUTUBE_CLIENT_SECRET'] = DEFAULT_YOUTUBE_CLIENT_SECRET;
+    }
     setCredentialsForm(initialForm);
   };
 
@@ -308,13 +323,25 @@ export function PublishingDashboard({
       const def = PLATFORM_CONFIG_DEFINITIONS[connectModalPlatform];
       const missingFormKeys = def.fields
         .filter((f) => {
-          // Discord and Telegram have pre-configured system defaults in backend/.env
+          // Platforms with pre-configured system defaults in backend/.env
+          if (
+            connectModalPlatform === 'youtube' &&
+            (f.key === 'YOUTUBE_CLIENT_ID' || f.key === 'YOUTUBE_CLIENT_SECRET')
+          ) {
+            return false;
+          }
           if (connectModalPlatform === 'discord' && f.key === 'DISCORD_WEBHOOK_URL') {
             return false;
           }
           if (
             connectModalPlatform === 'telegram' &&
             (f.key === 'TELEGRAM_BOT_TOKEN' || f.key === 'TELEGRAM_CHAT_ID')
+          ) {
+            return false;
+          }
+          if (
+            connectModalPlatform === 'instagram' &&
+            (f.key === 'INSTAGRAM_ACCOUNT_ID' || f.key === 'META_ACCESS_TOKEN')
           ) {
             return false;
           }
@@ -336,6 +363,9 @@ export function PublishingDashboard({
         const isCustomTelegram =
           connectModalPlatform === 'telegram' &&
           (Boolean(credentialsForm.TELEGRAM_BOT_TOKEN?.trim()) || Boolean(credentialsForm.TELEGRAM_CHAT_ID?.trim()));
+        const isCustomInstagram =
+          connectModalPlatform === 'instagram' &&
+          (Boolean(credentialsForm.INSTAGRAM_ACCOUNT_ID?.trim()) || Boolean(credentialsForm.META_ACCESS_TOKEN?.trim()));
 
         let successMessage = `Connected & Verified! Account: ${res.testResult.accountName || 'Active'}. Credentials securely saved.`;
         if (connectModalPlatform === 'discord') {
@@ -346,6 +376,10 @@ export function PublishingDashboard({
           successMessage = isCustomTelegram
             ? `Custom Telegram Channel connected & verified! Account: ${res.testResult.accountName || 'Active'}. Saved to backend/.env.`
             : `System Default Telegram Channel verified & active! Target: @lukizerkshorts.`;
+        } else if (connectModalPlatform === 'instagram') {
+          successMessage = isCustomInstagram
+            ? `Custom Instagram Account connected & verified! Account: ${res.testResult.accountName || 'Active'}. Saved to backend/.env.`
+            : `System Default Instagram Account verified & active! Target Account: 17841475233786072.`;
         }
 
         setModalSuccess(successMessage);
@@ -951,6 +985,9 @@ export function PublishingDashboard({
                 <span className="account-name-text">
                   Channel: <strong>{connections.youtube.accountName || 'Authenticated Channel'}</strong>
                 </span>
+                {connections.youtube.isDefault && (
+                  <span className="badge-default-pill">Default Client</span>
+                )}
               </div>
             ) : connections?.youtube.missingKeys && connections.youtube.missingKeys.length > 0 ? (
               <div className="card-missing-keys-box">
@@ -1281,6 +1318,9 @@ export function PublishingDashboard({
                 <span className="account-name-text">
                   Account: <strong>{connections.instagram.accountName || 'Professional Account'}</strong>
                 </span>
+                {connections.instagram.isDefault && (
+                  <span className="badge-default-pill">Default Account</span>
+                )}
               </div>
             ) : connections?.instagram.missingKeys && connections.instagram.missingKeys.length > 0 ? (
               <div className="card-missing-keys-box">
@@ -1416,6 +1456,21 @@ export function PublishingDashboard({
                 </div>
               )}
 
+              {connectModalPlatform === 'youtube' && (
+                <div className="default-webhook-banner">
+                  <div className="default-webhook-header">
+                    <span className="badge-default-active">Default Ready</span>
+                    <span className="default-webhook-title">Pre-configured System Default OAuth Client</span>
+                  </div>
+                  <p className="default-webhook-text">
+                    Google OAuth Client ID & Secret are pre-configured. You can paste custom credentials below or click the shortcut buttons. Only your authorized OAuth Refresh Token is required.
+                  </p>
+                  <div className="default-webhook-url-preview">
+                    Default Client ID: {DEFAULT_YOUTUBE_CLIENT_ID}
+                  </div>
+                </div>
+              )}
+
               {connectModalPlatform === 'discord' && (
                 <div className="default-webhook-banner">
                   <div className="default-webhook-header">
@@ -1442,6 +1497,21 @@ export function PublishingDashboard({
                   </p>
                   <div className="default-webhook-url-preview">
                     Default Channel: {DEFAULT_TELEGRAM_CHAT_ID}
+                  </div>
+                </div>
+              )}
+
+              {connectModalPlatform === 'instagram' && (
+                <div className="default-webhook-banner">
+                  <div className="default-webhook-header">
+                    <span className="badge-default-active">Default Ready</span>
+                    <span className="default-webhook-title">Pre-configured System Default Instagram Account</span>
+                  </div>
+                  <p className="default-webhook-text">
+                    If you enter custom credentials below, only your custom account & token will be used. Otherwise, the default account (ID: 17841475233786072) will be used automatically.
+                  </p>
+                  <div className="default-webhook-url-preview">
+                    Default Account ID: {DEFAULT_INSTAGRAM_ACCOUNT_ID}
                   </div>
                 </div>
               )}
@@ -1486,6 +1556,70 @@ export function PublishingDashboard({
                       )}
                     </div>
                     <span className="field-hint-text">{f.hint}</span>
+
+                    {connectModalPlatform === 'youtube' && f.key === 'YOUTUBE_CLIENT_ID' && (
+                      <div className="field-actions-row">
+                        {credentialsForm[f.key] ? (
+                          <button
+                            type="button"
+                            className="btn-inline-default"
+                            onClick={() =>
+                              setCredentialsForm((prev) => ({
+                                ...prev,
+                                [f.key]: '',
+                              }))
+                            }
+                          >
+                            Clear (Use System Default)
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-inline-default"
+                            onClick={() =>
+                              setCredentialsForm((prev) => ({
+                                ...prev,
+                                [f.key]: DEFAULT_YOUTUBE_CLIENT_ID,
+                              }))
+                            }
+                          >
+                            Paste Default Client ID
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {connectModalPlatform === 'youtube' && f.key === 'YOUTUBE_CLIENT_SECRET' && (
+                      <div className="field-actions-row">
+                        {credentialsForm[f.key] ? (
+                          <button
+                            type="button"
+                            className="btn-inline-default"
+                            onClick={() =>
+                              setCredentialsForm((prev) => ({
+                                ...prev,
+                                [f.key]: '',
+                              }))
+                            }
+                          >
+                            Clear (Use System Default)
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-inline-default"
+                            onClick={() =>
+                              setCredentialsForm((prev) => ({
+                                ...prev,
+                                [f.key]: DEFAULT_YOUTUBE_CLIENT_SECRET,
+                              }))
+                            }
+                          >
+                            Paste Default Client Secret
+                          </button>
+                        )}
+                      </div>
+                    )}
 
                     {connectModalPlatform === 'discord' && f.key === 'DISCORD_WEBHOOK_URL' && (
                       <div className="field-actions-row">
@@ -1578,6 +1712,70 @@ export function PublishingDashboard({
                             }
                           >
                             Paste Default Channel (@lukizerkshorts)
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {connectModalPlatform === 'instagram' && f.key === 'INSTAGRAM_ACCOUNT_ID' && (
+                      <div className="field-actions-row">
+                        {credentialsForm[f.key] ? (
+                          <button
+                            type="button"
+                            className="btn-inline-default"
+                            onClick={() =>
+                              setCredentialsForm((prev) => ({
+                                ...prev,
+                                [f.key]: '',
+                              }))
+                            }
+                          >
+                            Clear (Use System Default)
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-inline-default"
+                            onClick={() =>
+                              setCredentialsForm((prev) => ({
+                                ...prev,
+                                [f.key]: DEFAULT_INSTAGRAM_ACCOUNT_ID,
+                              }))
+                            }
+                          >
+                            Paste Default Account ID
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {connectModalPlatform === 'instagram' && f.key === 'META_ACCESS_TOKEN' && (
+                      <div className="field-actions-row">
+                        {credentialsForm[f.key] ? (
+                          <button
+                            type="button"
+                            className="btn-inline-default"
+                            onClick={() =>
+                              setCredentialsForm((prev) => ({
+                                ...prev,
+                                [f.key]: '',
+                              }))
+                            }
+                          >
+                            Clear (Use System Default)
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-inline-default"
+                            onClick={() =>
+                              setCredentialsForm((prev) => ({
+                                ...prev,
+                                [f.key]: DEFAULT_META_ACCESS_TOKEN,
+                              }))
+                            }
+                          >
+                            Paste Default Access Token
                           </button>
                         )}
                       </div>

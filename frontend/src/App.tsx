@@ -72,7 +72,7 @@ const PRESETS: Preset[] = [
     name: 'Instant Studio Demo',
     badge: 'Offline / Instant',
     badgeClass: 'badge-neon-cyan',
-    videoUrl: 'http://localhost:8000/media/dl_video_7a92c74aa4.mp4',
+    videoUrl: 'http://localhost:8000/media/test_source_vid.mp4',
     musicUrl: 'http://localhost:8000/media/test_source_aud.mp3',
     quote: 'Stop waiting and start building your future today.',
     title: 'Build Your Future',

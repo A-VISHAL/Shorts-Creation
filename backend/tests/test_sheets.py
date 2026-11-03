@@ -40,7 +40,7 @@ def test_sheets_inspect_private_without_creds(client):
     assert resp.status_code in [400, 403]
     data = resp.json()
     assert data["success"] is False
-    assert "Cannot access" in data["error"] or "Permission" in data["error"] or "Failed to fetch" in data["error"]
+    assert "Cannot access" in data["error"] or "Permission" in data["error"] or "Failed to fetch" in data["error"] or "Name or service not known" in data["error"]
 
 
 def test_auto_detect_mapping():

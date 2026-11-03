@@ -2,7 +2,7 @@
 
 import os
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 
 from app import app
@@ -55,7 +55,7 @@ async def test_get_all_connection_statuses_no_secrets():
 
 @pytest.mark.asyncio
 async def test_discord_size_limit_rejection():
-    # Oversized payload (> 25 MB)
+    # Oversized payload (> 25 MB) with unparseable bytes fails compression and rejects
     oversized_bytes = b"0" * (DISCORD_MAX_BYTES + 1024)
     with patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/mock/test"}):
         result = await publishing_service.publish_to_discord(
@@ -65,6 +65,33 @@ async def test_discord_size_limit_rejection():
         )
     assert result["status"] == "Failed"
     assert "exceeds Discord standard upload limit" in result["error"]
+
+
+@pytest.mark.asyncio
+async def test_discord_auto_compresses_oversized_video():
+    # Oversized video that successfully auto-compresses under 25 MB
+    oversized_bytes = b"0" * (DISCORD_MAX_BYTES + 5 * 1024 * 1024)  # 30 MB
+    compressed_bytes = b"compressed_mp4_bytes_under_25mb"
+
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {"id": "123456789", "channel_id": "987654321"}
+
+    with patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "https://discord.com/api/webhooks/mock/test"}), \
+         patch.object(publishing_service, "compress_video_to_limit", return_value=compressed_bytes) as mock_comp, \
+         patch("httpx.AsyncClient.post", return_value=mock_resp) as mock_post:
+        result = await publishing_service.publish_to_discord(
+            video_bytes=oversized_bytes,
+            title="Auto Compress Test",
+            quote="Quote for auto compress",
+        )
+
+    assert mock_comp.called
+    assert result["status"] == "Published"
+    assert result["messageId"] == "123456789"
+    # Ensure the uploaded file bytes were the compressed bytes
+    _, kwargs = mock_post.call_args
+    assert kwargs["files"]["file"][1] == compressed_bytes
 
 
 @pytest.mark.asyncio
@@ -178,7 +205,7 @@ def test_api_publish_dispatch_endpoint(client):
 
 def test_discord_default_webhook_resolution():
     """Verify that custom webhook is only used if provided, otherwise default is used."""
-    default_url = "https://discord.com/api/webhooks/1566147524891377846/dXkNoX_h4o-aMNOJTaoOe4gPGGgmSMDUqaI2iYLpveFleZitlM6-4TcsvddQ_0SKCaEh"
+    default_url = "https://discord.com/api/webhooks/123456789012345678/mockDefaultDiscordWebhookTokenAlphaNum"
     custom_url = "https://discord.com/api/webhooks/9999999999/customToken123"
 
     # Case 1: DISCORD_WEBHOOK_URL is empty -> falls back to default
@@ -200,8 +227,46 @@ def test_discord_default_webhook_resolution():
         assert resolved == explicit_url
 
 
+def test_youtube_default_credentials_resolution():
+    """Verify YouTube uses default OAuth Client ID and Secret when custom values are empty."""
+    default_cid = "mock-default-yt-client-id.apps.googleusercontent.com"
+    default_csec = "mockDefaultSecret123"
+    custom_cid = "999888777-custom.apps.googleusercontent.com"
+    custom_csec = "mockCustomSecret456"
+
+    # Case 1: Empty custom environment -> falls back to system defaults
+    with patch.dict(os.environ, {
+        "YOUTUBE_CLIENT_ID": "",
+        "YOUTUBE_CLIENT_SECRET": "",
+        "DEFAULT_YOUTUBE_CLIENT_ID": default_cid,
+        "DEFAULT_YOUTUBE_CLIENT_SECRET": default_csec,
+    }):
+        assert publishing_service.get_youtube_client_id() == default_cid
+        assert publishing_service.get_youtube_client_secret() == default_csec
+        assert publishing_service.is_default_youtube() is True
+
+    # Case 2: Custom credentials provided -> uses custom
+    with patch.dict(os.environ, {
+        "YOUTUBE_CLIENT_ID": custom_cid,
+        "YOUTUBE_CLIENT_SECRET": custom_csec,
+        "DEFAULT_YOUTUBE_CLIENT_ID": default_cid,
+        "DEFAULT_YOUTUBE_CLIENT_SECRET": default_csec,
+    }):
+        assert publishing_service.get_youtube_client_id() == custom_cid
+        assert publishing_service.get_youtube_client_secret() == custom_csec
+        assert publishing_service.is_default_youtube() is False
+
+    # Case 3: Explicit argument passed
+    with patch.dict(os.environ, {
+        "YOUTUBE_CLIENT_ID": custom_cid,
+        "YOUTUBE_CLIENT_SECRET": custom_csec,
+    }):
+        assert publishing_service.get_youtube_client_id("explicit-cid") == "explicit-cid"
+        assert publishing_service.get_youtube_client_secret("explicit-csec") == "explicit-csec"
+
+
 def test_discord_config_reporting():
-    default_url = "https://discord.com/api/webhooks/1566147524891377846/dXkNoX_h4o-aMNOJTaoOe4gPGGgmSMDUqaI2iYLpveFleZitlM6-4TcsvddQ_0SKCaEh"
+    default_url = "https://discord.com/api/webhooks/123456789012345678/mockDefaultDiscordWebhookTokenAlphaNum"
     with patch.dict(os.environ, {"DISCORD_WEBHOOK_URL": "", "DEFAULT_DISCORD_WEBHOOK_URL": default_url}):
         cfg = publishing_service.get_discord_config()
         assert cfg["configured"] is True
@@ -219,8 +284,8 @@ def test_discord_config_reporting():
 
 def test_telegram_default_credentials_resolution():
     """Verify Telegram uses default credentials unless custom are provided."""
-    default_tok = "9004895062:AAGZS4lwUumLy0130bOFwj7dZLM1dHWSK2I"
-    default_chat = "@lukizerkshorts"
+    default_tok = "1234567890:mockDefaultTelegramBotTokenAlphaNum"
+    default_chat = "@mockchannel"
     custom_tok = "111222333:CustomBotToken"
     custom_chat = "@my_custom_channel"
 
@@ -259,8 +324,8 @@ def test_telegram_default_credentials_resolution():
 
 
 def test_telegram_config_reporting():
-    default_tok = "9004895062:AAGZS4lwUumLy0130bOFwj7dZLM1dHWSK2I"
-    default_chat = "@lukizerkshorts"
+    default_tok = "1234567890:mockDefaultTelegramBotTokenAlphaNum"
+    default_chat = "@mockchannel"
 
     with patch.dict(os.environ, {
         "TELEGRAM_BOT_TOKEN": "",
@@ -286,4 +351,101 @@ def test_telegram_config_reporting():
         assert cfg["isDefault"] is False
         assert cfg["hasCustomOverride"] is True
         assert cfg["chatId"] == "@custom"
+        assert cfg["missingKeys"] == []
+
+
+def test_instagram_default_credentials_resolution():
+    default_acc = "17841400000000000"
+    default_tok = "mockDefaultMetaAccessToken1234567890"
+    custom_acc = "99999999999999999"
+    custom_tok = "EAACUSTOMTOKEN123456789"
+
+    # Case 1: Custom keys empty -> default values used
+    with patch.dict(os.environ, {
+        "INSTAGRAM_ACCOUNT_ID": "",
+        "META_ACCESS_TOKEN": "",
+        "DEFAULT_INSTAGRAM_ACCOUNT_ID": default_acc,
+        "DEFAULT_META_ACCESS_TOKEN": default_tok,
+    }):
+        assert publishing_service.get_instagram_account_id() == default_acc
+        assert publishing_service.get_meta_access_token() == default_tok
+        assert publishing_service.is_default_instagram() is True
+        assert publishing_service.get_missing_keys("instagram") == []
+
+    # Case 2: Custom account and token set -> custom values used
+    with patch.dict(os.environ, {
+        "INSTAGRAM_ACCOUNT_ID": custom_acc,
+        "META_ACCESS_TOKEN": custom_tok,
+        "DEFAULT_INSTAGRAM_ACCOUNT_ID": default_acc,
+        "DEFAULT_META_ACCESS_TOKEN": default_tok,
+    }):
+        assert publishing_service.get_instagram_account_id() == custom_acc
+        assert publishing_service.get_meta_access_token() == custom_tok
+        assert publishing_service.is_default_instagram() is False
+
+    # Case 3: Explicit parameters override
+    explicit_acc = "111222333444555"
+    explicit_tok = "EAAEXPLICIT123"
+    with patch.dict(os.environ, {
+        "INSTAGRAM_ACCOUNT_ID": custom_acc,
+        "META_ACCESS_TOKEN": custom_tok,
+    }):
+        assert publishing_service.get_instagram_account_id(explicit_acc) == explicit_acc
+        assert publishing_service.get_meta_access_token(explicit_tok) == explicit_tok
+
+
+def test_instagram_config_reporting():
+    default_acc = "17841400000000000"
+    default_tok = "mockDefaultMetaAccessToken1234567890"
+
+    with patch.dict(os.environ, {
+        "INSTAGRAM_ACCOUNT_ID": "",
+        "META_ACCESS_TOKEN": "",
+        "DEFAULT_INSTAGRAM_ACCOUNT_ID": default_acc,
+        "DEFAULT_META_ACCESS_TOKEN": default_tok,
+    }):
+        cfg = publishing_service.get_instagram_config()
+        assert cfg["configured"] is True
+        assert cfg["isDefault"] is True
+        assert cfg["hasCustomOverride"] is False
+        assert cfg["accountId"] == default_acc
+        assert cfg["missingKeys"] == []
+
+    with patch.dict(os.environ, {
+        "INSTAGRAM_ACCOUNT_ID": "12345custom",
+        "META_ACCESS_TOKEN": "customtok",
+        "DEFAULT_INSTAGRAM_ACCOUNT_ID": default_acc,
+        "DEFAULT_META_ACCESS_TOKEN": default_tok,
+    }):
+        cfg = publishing_service.get_instagram_config()
+        assert cfg["configured"] is True
+        assert cfg["isDefault"] is False
+        assert cfg["hasCustomOverride"] is True
+        assert cfg["accountId"] == "12345custom"
+        assert cfg["missingKeys"] == []
+
+    with patch.dict(os.environ, {
+        "INSTAGRAM_ACCOUNT_ID": "",
+        "META_ACCESS_TOKEN": "",
+        "DEFAULT_INSTAGRAM_ACCOUNT_ID": default_acc,
+        "DEFAULT_META_ACCESS_TOKEN": default_tok,
+    }):
+        cfg = publishing_service.get_instagram_config()
+        assert cfg["configured"] is True
+        assert cfg["isDefault"] is True
+        assert cfg["hasCustomOverride"] is False
+        assert cfg["accountId"] == default_acc
+        assert cfg["missingKeys"] == []
+
+    with patch.dict(os.environ, {
+        "INSTAGRAM_ACCOUNT_ID": "12345custom",
+        "META_ACCESS_TOKEN": "customtok",
+        "DEFAULT_INSTAGRAM_ACCOUNT_ID": default_acc,
+        "DEFAULT_META_ACCESS_TOKEN": default_tok,
+    }):
+        cfg = publishing_service.get_instagram_config()
+        assert cfg["configured"] is True
+        assert cfg["isDefault"] is False
+        assert cfg["hasCustomOverride"] is True
+        assert cfg["accountId"] == "12345custom"
         assert cfg["missingKeys"] == []

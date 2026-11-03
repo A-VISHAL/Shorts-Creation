@@ -18,6 +18,8 @@ import json
 import logging
 import os
 import re
+import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -37,21 +39,21 @@ logger = logging.getLogger("shorts-studio.publishing")
 DISCORD_MAX_BYTES = 25 * 1024 * 1024   # 25 MB standard upload limit
 TELEGRAM_MAX_BYTES = 50 * 1024 * 1024  # 50 MB bot API upload limit
 
-# Default Discord Webhook URL fallback
-DEFAULT_DISCORD_WEBHOOK_URL = (
-    os.getenv("DEFAULT_DISCORD_WEBHOOK_URL", "").strip()
-    or "https://discord.com/api/webhooks/1566147524891377846/dXkNoX_h4o-aMNOJTaoOe4gPGGgmSMDUqaI2iYLpveFleZitlM6-4TcsvddQ_0SKCaEh"
-)
+# Default YouTube OAuth Client ID and Secret fallback (configured in backend/.env)
+DEFAULT_YOUTUBE_CLIENT_ID = os.getenv("DEFAULT_YOUTUBE_CLIENT_ID", "").strip()
+DEFAULT_YOUTUBE_CLIENT_SECRET = os.getenv("DEFAULT_YOUTUBE_CLIENT_SECRET", "").strip()
+DEFAULT_YOUTUBE_REFRESH_TOKEN = os.getenv("DEFAULT_YOUTUBE_REFRESH_TOKEN", "").strip()
 
-# Default Telegram Bot Token and Chat ID fallback
-DEFAULT_TELEGRAM_BOT_TOKEN = (
-    os.getenv("DEFAULT_TELEGRAM_BOT_TOKEN", "").strip()
-    or "9004895062:AAGZS4lwUumLy0130bOFwj7dZLM1dHWSK2I"
-)
-DEFAULT_TELEGRAM_CHAT_ID = (
-    os.getenv("DEFAULT_TELEGRAM_CHAT_ID", "").strip()
-    or "@lukizerkshorts"
-)
+# Default Discord Webhook URL fallback (configured in backend/.env)
+DEFAULT_DISCORD_WEBHOOK_URL = os.getenv("DEFAULT_DISCORD_WEBHOOK_URL", "").strip()
+
+# Default Telegram Bot Token and Chat ID fallback (configured in backend/.env)
+DEFAULT_TELEGRAM_BOT_TOKEN = os.getenv("DEFAULT_TELEGRAM_BOT_TOKEN", "").strip()
+DEFAULT_TELEGRAM_CHAT_ID = os.getenv("DEFAULT_TELEGRAM_CHAT_ID", "").strip()
+
+# Default Instagram Account ID and Meta Access Token fallback (configured in backend/.env)
+DEFAULT_INSTAGRAM_ACCOUNT_ID = os.getenv("DEFAULT_INSTAGRAM_ACCOUNT_ID", "").strip()
+DEFAULT_META_ACCESS_TOKEN = os.getenv("DEFAULT_META_ACCESS_TOKEN", "").strip()
 
 # Required environment keys per platform
 PLATFORM_REQUIRED_KEYS: Dict[str, List[str]] = {
@@ -73,6 +75,82 @@ class PublishingService:
     # -------------------------------------------------------------------------
     # Credential & Missing Keys Detection
     # -------------------------------------------------------------------------
+
+    @property
+    def default_youtube_client_id(self) -> str:
+        """Return configured or system default YouTube OAuth Client ID."""
+        return (
+            os.getenv("DEFAULT_YOUTUBE_CLIENT_ID", "").strip()
+            or DEFAULT_YOUTUBE_CLIENT_ID
+        )
+
+    @property
+    def default_youtube_client_secret(self) -> str:
+        """Return configured or system default YouTube OAuth Client Secret."""
+        return (
+            os.getenv("DEFAULT_YOUTUBE_CLIENT_SECRET", "").strip()
+            or DEFAULT_YOUTUBE_CLIENT_SECRET
+        )
+
+    @property
+    def default_youtube_refresh_token(self) -> str:
+        """Return configured or system default YouTube OAuth Refresh Token."""
+        return (
+            os.getenv("DEFAULT_YOUTUBE_REFRESH_TOKEN", "").strip()
+            or DEFAULT_YOUTUBE_REFRESH_TOKEN
+        )
+
+    def get_youtube_client_id(self, explicit_id: Optional[str] = None) -> str:
+        """Return active YouTube Client ID with priority:
+        1. Explicit parameter (if non-empty)
+        2. Custom YOUTUBE_CLIENT_ID from environment
+        3. DEFAULT_YOUTUBE_CLIENT_ID (system default)
+        """
+        if explicit_id and explicit_id.strip():
+            return explicit_id.strip()
+        custom = os.getenv("YOUTUBE_CLIENT_ID", "").strip()
+        if custom:
+            return custom
+        return self.default_youtube_client_id
+
+    def get_youtube_client_secret(self, explicit_secret: Optional[str] = None) -> str:
+        """Return active YouTube Client Secret with priority:
+        1. Explicit parameter (if non-empty)
+        2. Custom YOUTUBE_CLIENT_SECRET from environment
+        3. DEFAULT_YOUTUBE_CLIENT_SECRET (system default)
+        """
+        if explicit_secret and explicit_secret.strip():
+            return explicit_secret.strip()
+        custom = os.getenv("YOUTUBE_CLIENT_SECRET", "").strip()
+        if custom:
+            return custom
+        return self.default_youtube_client_secret
+
+    def get_youtube_refresh_token(self, explicit_token: Optional[str] = None) -> str:
+        """Return active YouTube Refresh Token with priority:
+        1. Explicit parameter (if non-empty)
+        2. Custom YOUTUBE_REFRESH_TOKEN from environment
+        3. DEFAULT_YOUTUBE_REFRESH_TOKEN (system default)
+        """
+        if explicit_token and explicit_token.strip():
+            return explicit_token.strip()
+        custom = os.getenv("YOUTUBE_REFRESH_TOKEN", "").strip()
+        if custom:
+            return custom
+        return self.default_youtube_refresh_token
+
+    def is_default_youtube(
+        self,
+        client_id: Optional[str] = None,
+        client_secret: Optional[str] = None,
+    ) -> bool:
+        """Check whether active or given YouTube Client ID & Secret match the system defaults."""
+        cid = (client_id or self.get_youtube_client_id()).strip()
+        csec = (client_secret or self.get_youtube_client_secret()).strip()
+        return bool(
+            cid == self.default_youtube_client_id.strip()
+            and csec == self.default_youtube_client_secret.strip()
+        )
 
     @property
     def default_discord_webhook_url(self) -> str:
@@ -155,8 +233,78 @@ class PublishingService:
             and chat == self.default_telegram_chat_id.strip()
         )
 
+    @property
+    def default_instagram_account_id(self) -> str:
+        """Return configured or system default Instagram Professional Account ID."""
+        return (
+            os.getenv("DEFAULT_INSTAGRAM_ACCOUNT_ID", "").strip()
+            or DEFAULT_INSTAGRAM_ACCOUNT_ID
+        )
+
+    @property
+    def default_meta_access_token(self) -> str:
+        """Return configured or system default Meta Graph User / Page Access Token."""
+        return (
+            os.getenv("DEFAULT_META_ACCESS_TOKEN", "").strip()
+            or DEFAULT_META_ACCESS_TOKEN
+        )
+
+    def get_instagram_account_id(self, explicit_account_id: Optional[str] = None) -> str:
+        """Return active Instagram account ID with priority:
+        1. Explicit parameter (if non-empty)
+        2. Custom INSTAGRAM_ACCOUNT_ID from environment
+        3. DEFAULT_INSTAGRAM_ACCOUNT_ID
+        """
+        if explicit_account_id and explicit_account_id.strip():
+            return explicit_account_id.strip()
+        custom = os.getenv("INSTAGRAM_ACCOUNT_ID", "").strip()
+        if custom:
+            return custom
+        return self.default_instagram_account_id
+
+    def get_meta_access_token(self, explicit_token: Optional[str] = None) -> str:
+        """Return active Meta access token with priority:
+        1. Explicit parameter (if non-empty)
+        2. Custom META_ACCESS_TOKEN from environment
+        3. DEFAULT_META_ACCESS_TOKEN
+        """
+        if explicit_token and explicit_token.strip():
+            return explicit_token.strip()
+        custom = os.getenv("META_ACCESS_TOKEN", "").strip()
+        if custom:
+            return custom
+        return self.default_meta_access_token
+
+    def is_default_instagram(
+        self,
+        account_id: Optional[str] = None,
+        access_token: Optional[str] = None,
+    ) -> bool:
+        """Check whether active or given Instagram credentials match the system defaults."""
+        acc = (account_id or self.get_instagram_account_id()).strip()
+        tok = (access_token or self.get_meta_access_token()).strip()
+        return bool(
+            acc == self.default_instagram_account_id.strip()
+            and tok == self.default_meta_access_token.strip()
+        )
+
     def get_missing_keys(self, platform: str) -> List[str]:
         """Detect which environment variables are missing or empty for a platform."""
+        if platform == "youtube":
+            # YouTube has system default OAuth Client ID and Secret.
+            cid = self.get_youtube_client_id()
+            csec = self.get_youtube_client_secret()
+            rtok = self.get_youtube_refresh_token()
+            atok = os.getenv("YOUTUBE_ACCESS_TOKEN", "").strip()
+            missing = []
+            if not cid:
+                missing.append("YOUTUBE_CLIENT_ID")
+            if not csec:
+                missing.append("YOUTUBE_CLIENT_SECRET")
+            if not rtok and not atok:
+                missing.append("YOUTUBE_REFRESH_TOKEN")
+            return missing
+
         if platform == "discord":
             # Discord has a system default webhook. It is only considered missing if
             # no webhook (custom or default) and no bot credentials exist.
@@ -179,6 +327,18 @@ class PublishingService:
                 missing.append("TELEGRAM_CHAT_ID")
             return missing
 
+        if platform == "instagram":
+            # Instagram has system default account credentials. Only missing if both
+            # custom and default account ID/access token are missing.
+            acc = self.get_instagram_account_id()
+            tok = self.get_meta_access_token()
+            missing = []
+            if not acc:
+                missing.append("INSTAGRAM_ACCOUNT_ID")
+            if not tok:
+                missing.append("META_ACCESS_TOKEN")
+            return missing
+
         required = PLATFORM_REQUIRED_KEYS.get(platform, [])
         missing = []
         for key in required:
@@ -188,21 +348,33 @@ class PublishingService:
         return missing
 
     def get_youtube_config(self) -> Dict[str, Any]:
-        client_id = os.getenv("YOUTUBE_CLIENT_ID", "").strip()
-        client_secret = os.getenv("YOUTUBE_CLIENT_SECRET", "").strip()
-        refresh_token = os.getenv("YOUTUBE_REFRESH_TOKEN", "").strip()
+        client_id = self.get_youtube_client_id()
+        client_secret = self.get_youtube_client_secret()
+        refresh_token = self.get_youtube_refresh_token()
         access_token = os.getenv("YOUTUBE_ACCESS_TOKEN", "").strip()
+        custom_cid = os.getenv("YOUTUBE_CLIENT_ID", "").strip()
+        custom_csec = os.getenv("YOUTUBE_CLIENT_SECRET", "").strip()
+        custom_rtok = os.getenv("YOUTUBE_REFRESH_TOKEN", "").strip()
         default_privacy = os.getenv("YOUTUBE_DEFAULT_PRIVACY", "private").strip().lower()
         if default_privacy not in ("private", "public", "unlisted"):
             default_privacy = "private"
 
         missing = self.get_missing_keys("youtube")
         configured = len(missing) == 0 or bool(access_token)
+        is_default = self.is_default_youtube(client_id, client_secret)
+        has_custom = bool(
+            (custom_cid and custom_cid != self.default_youtube_client_id)
+            or (custom_csec and custom_csec != self.default_youtube_client_secret)
+            or (custom_rtok and custom_rtok != self.default_youtube_refresh_token)
+        )
         return {
             "configured": configured,
             "missingKeys": missing,
             "privacy": default_privacy,
             "hasOAuth": bool(client_id and refresh_token),
+            "isDefault": is_default,
+            "hasCustomOverride": has_custom,
+            "defaultClientId": self.default_youtube_client_id,
         }
 
     def get_discord_config(self) -> Dict[str, Any]:
@@ -251,18 +423,28 @@ class PublishingService:
         }
 
     def get_instagram_config(self) -> Dict[str, Any]:
-        account_id = os.getenv("INSTAGRAM_ACCOUNT_ID", "").strip()
-        access_token = os.getenv("META_ACCESS_TOKEN", "").strip()
+        account_id = self.get_instagram_account_id()
+        access_token = self.get_meta_access_token()
         api_version = os.getenv("META_API_VERSION", "v19.0").strip()
+        custom_acc = os.getenv("INSTAGRAM_ACCOUNT_ID", "").strip()
+        custom_tok = os.getenv("META_ACCESS_TOKEN", "").strip()
 
         missing = self.get_missing_keys("instagram")
         configured = len(missing) == 0
+        is_default = self.is_default_instagram(account_id, access_token)
+        has_custom = bool(
+            (custom_acc and custom_acc != self.default_instagram_account_id)
+            or (custom_tok and custom_tok != self.default_meta_access_token)
+        )
         return {
             "configured": configured,
             "missingKeys": missing,
             "accountId": account_id if account_id else None,
             "hasAccessToken": bool(access_token),
             "apiVersion": api_version,
+            "isDefault": is_default,
+            "hasCustomOverride": has_custom,
+            "defaultAccountId": self.default_instagram_account_id,
         }
 
     # -------------------------------------------------------------------------
@@ -276,15 +458,15 @@ class PublishingService:
         refresh_token: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Test YouTube Data API v3 authentication by refreshing token and fetching channel info."""
-        cid = client_id or os.getenv("YOUTUBE_CLIENT_ID", "").strip()
-        csec = client_secret or os.getenv("YOUTUBE_CLIENT_SECRET", "").strip()
-        rtok = refresh_token or os.getenv("YOUTUBE_REFRESH_TOKEN", "").strip()
+        cid = self.get_youtube_client_id(client_id)
+        csec = self.get_youtube_client_secret(client_secret)
+        rtok = self.get_youtube_refresh_token(refresh_token)
         atok = os.getenv("YOUTUBE_ACCESS_TOKEN", "").strip()
 
         missing = []
         if not cid: missing.append("YOUTUBE_CLIENT_ID")
         if not csec: missing.append("YOUTUBE_CLIENT_SECRET")
-        if not rtok: missing.append("YOUTUBE_REFRESH_TOKEN")
+        if not rtok and not atok: missing.append("YOUTUBE_REFRESH_TOKEN")
 
         if missing and not atok:
             return {
@@ -356,10 +538,12 @@ class PublishingService:
                 yt_data = yt_resp.json()
                 items = yt_data.get("items", [])
                 channel_name = items[0]["snippet"]["title"] if items else "Authenticated YouTube Channel"
+                is_default = self.is_default_youtube(cid, csec)
                 return {
                     "platform": "youtube",
                     "connected": True,
-                    "status": "Connected",
+                    "status": "Connected (Default Client)" if is_default else "Connected",
+                    "isDefault": is_default,
                     "missingKeys": [],
                     "accountName": channel_name,
                     "error": None,
@@ -557,8 +741,8 @@ class PublishingService:
         api_version: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Test Meta Instagram Graph API token validity and professional account status."""
-        acc_id = (account_id or os.getenv("INSTAGRAM_ACCOUNT_ID", "")).strip()
-        token = (access_token or os.getenv("META_ACCESS_TOKEN", "")).strip()
+        acc_id = self.get_instagram_account_id(account_id)
+        token = self.get_meta_access_token(access_token)
         api_ver = (api_version or os.getenv("META_API_VERSION", "v19.0")).strip()
 
         missing = []
@@ -588,12 +772,17 @@ class PublishingService:
             if resp.status_code == 200:
                 data = resp.json()
                 username = data.get("username") or data.get("name") or acc_id
+                is_default = self.is_default_instagram(acc_id, token)
+                account_name = f"@{username}"
+                if is_default:
+                    account_name += " [Default Account]"
                 return {
                     "platform": "instagram",
                     "connected": True,
-                    "status": "Connected",
+                    "status": "Connected (Default)" if is_default else "Connected",
+                    "isDefault": is_default,
                     "missingKeys": [],
-                    "accountName": f"@{username}",
+                    "accountName": account_name,
                     "error": None,
                 }
             else:
@@ -674,7 +863,16 @@ class PublishingService:
             clean_val = str(val).strip()
             if clean_val:
                 os.environ[key] = clean_val
-            elif key in ("DISCORD_WEBHOOK_URL", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"):
+            elif key in (
+                "YOUTUBE_CLIENT_ID",
+                "YOUTUBE_CLIENT_SECRET",
+                "YOUTUBE_REFRESH_TOKEN",
+                "DISCORD_WEBHOOK_URL",
+                "TELEGRAM_BOT_TOKEN",
+                "TELEGRAM_CHAT_ID",
+                "INSTAGRAM_ACCOUNT_ID",
+                "META_ACCESS_TOKEN",
+            ):
                 # Clear custom override so it falls back to system defaults
                 os.environ[key] = ""
 
@@ -702,12 +900,20 @@ class PublishingService:
                 new_lines.append(f"{k}={clean_v}")
 
         # Ensure system default environment variables are retained in .env
+        if not any(l.strip().startswith("DEFAULT_YOUTUBE_CLIENT_ID=") for l in new_lines):
+            new_lines.append(f"DEFAULT_YOUTUBE_CLIENT_ID={self.default_youtube_client_id}")
+        if not any(l.strip().startswith("DEFAULT_YOUTUBE_CLIENT_SECRET=") for l in new_lines):
+            new_lines.append(f"DEFAULT_YOUTUBE_CLIENT_SECRET={self.default_youtube_client_secret}")
         if not any(l.strip().startswith("DEFAULT_DISCORD_WEBHOOK_URL=") for l in new_lines):
             new_lines.append(f"DEFAULT_DISCORD_WEBHOOK_URL={self.default_discord_webhook_url}")
         if not any(l.strip().startswith("DEFAULT_TELEGRAM_BOT_TOKEN=") for l in new_lines):
             new_lines.append(f"DEFAULT_TELEGRAM_BOT_TOKEN={self.default_telegram_bot_token}")
         if not any(l.strip().startswith("DEFAULT_TELEGRAM_CHAT_ID=") for l in new_lines):
             new_lines.append(f"DEFAULT_TELEGRAM_CHAT_ID={self.default_telegram_chat_id}")
+        if not any(l.strip().startswith("DEFAULT_INSTAGRAM_ACCOUNT_ID=") for l in new_lines):
+            new_lines.append(f"DEFAULT_INSTAGRAM_ACCOUNT_ID={self.default_instagram_account_id}")
+        if not any(l.strip().startswith("DEFAULT_META_ACCESS_TOKEN=") for l in new_lines):
+            new_lines.append(f"DEFAULT_META_ACCESS_TOKEN={self.default_meta_access_token}")
 
         env_file.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
         logger.info(f"Updated credentials for {platform} in {env_file.name}: {list(credentials.keys())}")
@@ -929,9 +1135,9 @@ class PublishingService:
                 "error": f"YouTube credentials not configured. Missing in backend/.env: {', '.join(missing)}.",
             }
 
-        client_id = os.getenv("YOUTUBE_CLIENT_ID", "").strip()
-        client_secret = os.getenv("YOUTUBE_CLIENT_SECRET", "").strip()
-        refresh_token = os.getenv("YOUTUBE_REFRESH_TOKEN", "").strip()
+        client_id = self.get_youtube_client_id()
+        client_secret = self.get_youtube_client_secret()
+        refresh_token = self.get_youtube_refresh_token()
 
         if refresh_token and client_id and client_secret:
             try:
@@ -1046,6 +1252,135 @@ class PublishingService:
             }
 
     # -------------------------------------------------------------------------
+    # Video Compression Helper (Fits platform limits e.g. Discord 25MB)
+    # -------------------------------------------------------------------------
+
+    @staticmethod
+    async def compress_video_to_limit(
+        video_bytes: bytes,
+        max_bytes: int = DISCORD_MAX_BYTES,
+        target_bytes: int = 22 * 1024 * 1024,
+    ) -> Optional[bytes]:
+        """Compress video bytes using FFmpeg so that the resulting file fits within max_bytes.
+        
+        Returns the compressed bytes if successfully compressed under max_bytes, or None if
+        compression fails or input cannot be parsed.
+        """
+        if not video_bytes or len(video_bytes) <= max_bytes:
+            return video_bytes
+
+        temp_dir = Path(tempfile.gettempdir())
+        unique_id = f"cmp_{int(time.time())}_{os.getpid()}_{len(video_bytes)}"
+        in_path = temp_dir / f"{unique_id}_in.mp4"
+        out_path = temp_dir / f"{unique_id}_out.mp4"
+
+        try:
+            in_path.write_bytes(video_bytes)
+
+            # Probe duration with ffprobe
+            probe_cmd = [
+                "ffprobe",
+                "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                str(in_path),
+            ]
+            proc = await asyncio.create_subprocess_exec(
+                *probe_cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=15.0)
+            if proc.returncode != 0:
+                logger.warning("ffprobe could not inspect video for compression.")
+                return None
+
+            try:
+                duration = float(stdout.decode().strip())
+            except (ValueError, TypeError):
+                duration = 0.0
+
+            audio_bitrate_kbps = 128
+            if duration > 0:
+                target_total_kbps = int((target_bytes * 8) / duration / 1000)
+                target_video_kbps = max(400, target_total_kbps - audio_bitrate_kbps)
+            else:
+                target_video_kbps = 3200
+
+            ffmpeg_cmd = [
+                "ffmpeg",
+                "-y",
+                "-i", str(in_path),
+                "-c:v", "libx264",
+                "-preset", "veryfast",
+                "-b:v", f"{target_video_kbps}k",
+                "-maxrate", f"{int(target_video_kbps * 1.15)}k",
+                "-bufsize", f"{target_video_kbps * 2}k",
+                "-pix_fmt", "yuv420p",
+                "-movflags", "+faststart",
+                "-c:a", "aac",
+                "-b:a", f"{audio_bitrate_kbps}k",
+                "-ar", "44100",
+                str(out_path),
+            ]
+
+            proc = await asyncio.create_subprocess_exec(
+                *ffmpeg_cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            await asyncio.wait_for(proc.communicate(), timeout=180.0)
+
+            if proc.returncode == 0 and out_path.is_file():
+                compressed_size = out_path.stat().st_size
+                if compressed_size <= max_bytes:
+                    logger.info(
+                        f"Video successfully compressed: "
+                        f"{len(video_bytes)/(1024*1024):.2f} MB -> {compressed_size/(1024*1024):.2f} MB"
+                    )
+                    return out_path.read_bytes()
+                else:
+                    # Retry with lower bitrate if initial output still exceeded
+                    out_path.unlink(missing_ok=True)
+                    aggressive_video_kbps = max(300, int(target_video_kbps * 0.75))
+                    ffmpeg_cmd_aggressive = [
+                        "ffmpeg",
+                        "-y",
+                        "-i", str(in_path),
+                        "-c:v", "libx264",
+                        "-preset", "veryfast",
+                        "-b:v", f"{aggressive_video_kbps}k",
+                        "-maxrate", f"{aggressive_video_kbps}k",
+                        "-bufsize", f"{aggressive_video_kbps * 2}k",
+                        "-pix_fmt", "yuv420p",
+                        "-movflags", "+faststart",
+                        "-c:a", "aac",
+                        "-b:a", "96k",
+                        "-ar", "44100",
+                        str(out_path),
+                    ]
+                    proc2 = await asyncio.create_subprocess_exec(
+                        *ffmpeg_cmd_aggressive,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE,
+                    )
+                    await asyncio.wait_for(proc2.communicate(), timeout=180.0)
+                    if proc2.returncode == 0 and out_path.is_file() and out_path.stat().st_size <= max_bytes:
+                        return out_path.read_bytes()
+
+            return None
+        except Exception as e:
+            logger.warning(f"Video compression encountered error: {e}")
+            return None
+        finally:
+            if in_path.is_file():
+                try: in_path.unlink()
+                except Exception: pass
+            if out_path.is_file():
+                try: out_path.unlink()
+                except Exception: pass
+
+    # -------------------------------------------------------------------------
     # Platform 2: Discord Publisher (Attachment Upload + Size Limit Checks)
     # -------------------------------------------------------------------------
 
@@ -1070,21 +1405,34 @@ class PublishingService:
                 "error": "Missing DISCORD_WEBHOOK_URL in backend/.env. Connect Discord first.",
             }
 
-        # Size check
+        # Size check & automatic compression for Discord limit (25 MB)
         file_size = len(video_bytes)
         if file_size > DISCORD_MAX_BYTES:
-            size_mb = file_size / (1024 * 1024)
-            limit_mb = DISCORD_MAX_BYTES / (1024 * 1024)
-            return {
-                "platform": "discord",
-                "status": "Failed",
-                "messageId": None,
-                "url": None,
-                "error": (
-                    f"Video file size ({size_mb:.2f} MB) exceeds Discord standard upload limit of {limit_mb:.0f} MB. "
-                    "Compress the video or reduce duration to publish to Discord."
-                ),
-            }
+            logger.info(
+                f"Video size ({file_size / (1024*1024):.2f} MB) exceeds Discord standard limit of "
+                f"{DISCORD_MAX_BYTES / (1024*1024):.0f} MB. Attempting automatic compression..."
+            )
+            compressed_bytes = await self.compress_video_to_limit(
+                video_bytes,
+                max_bytes=DISCORD_MAX_BYTES,
+                target_bytes=22 * 1024 * 1024,
+            )
+            if compressed_bytes and len(compressed_bytes) <= DISCORD_MAX_BYTES:
+                video_bytes = compressed_bytes
+                file_size = len(video_bytes)
+            else:
+                size_mb = file_size / (1024 * 1024)
+                limit_mb = DISCORD_MAX_BYTES / (1024 * 1024)
+                return {
+                    "platform": "discord",
+                    "status": "Failed",
+                    "messageId": None,
+                    "url": None,
+                    "error": (
+                        f"Video file size ({size_mb:.2f} MB) exceeds Discord standard upload limit of {limit_mb:.0f} MB. "
+                        "Compress the video or reduce duration to publish to Discord."
+                    ),
+                }
 
         captions = self.format_captions(title, quote)
         content_text = captions["discord"]["content"]
@@ -1168,17 +1516,31 @@ class PublishingService:
                 "error": f"Missing Telegram credentials in backend/.env: {', '.join(missing)}. Connect Telegram first.",
             }
 
+        # Size check & automatic compression for Telegram limit (50 MB)
         file_size = len(video_bytes)
         if file_size > TELEGRAM_MAX_BYTES:
-            size_mb = file_size / (1024 * 1024)
-            limit_mb = TELEGRAM_MAX_BYTES / (1024 * 1024)
-            return {
-                "platform": "telegram",
-                "status": "Failed",
-                "messageId": None,
-                "url": None,
-                "error": f"Video size ({size_mb:.2f} MB) exceeds Telegram Bot API limit of {limit_mb:.0f} MB.",
-            }
+            logger.info(
+                f"Video size ({file_size / (1024*1024):.2f} MB) exceeds Telegram Bot API limit of "
+                f"{TELEGRAM_MAX_BYTES / (1024*1024):.0f} MB. Attempting automatic compression..."
+            )
+            compressed_bytes = await self.compress_video_to_limit(
+                video_bytes,
+                max_bytes=TELEGRAM_MAX_BYTES,
+                target_bytes=45 * 1024 * 1024,
+            )
+            if compressed_bytes and len(compressed_bytes) <= TELEGRAM_MAX_BYTES:
+                video_bytes = compressed_bytes
+                file_size = len(video_bytes)
+            else:
+                size_mb = file_size / (1024 * 1024)
+                limit_mb = TELEGRAM_MAX_BYTES / (1024 * 1024)
+                return {
+                    "platform": "telegram",
+                    "status": "Failed",
+                    "messageId": None,
+                    "url": None,
+                    "error": f"Video size ({size_mb:.2f} MB) exceeds Telegram Bot API limit of {limit_mb:.0f} MB.",
+                }
 
         captions = self.format_captions(title, quote)
         caption_text = captions["telegram"]["caption"]
@@ -1279,8 +1641,8 @@ class PublishingService:
                 ),
             }
 
-        account_id = os.getenv("INSTAGRAM_ACCOUNT_ID", "").strip()
-        access_token = os.getenv("META_ACCESS_TOKEN", "").strip()
+        account_id = self.get_instagram_account_id()
+        access_token = self.get_meta_access_token()
         api_ver = os.getenv("META_API_VERSION", "v19.0").strip()
 
         captions = self.format_captions(title, quote)
