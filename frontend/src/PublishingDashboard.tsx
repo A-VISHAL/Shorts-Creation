@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import './publishing_redesign.css';
 import {
   Youtube,
   Send,
@@ -226,6 +228,29 @@ export function PublishingDashboard({
   // General Setup Guide Modal
   const [setupModalOpen, setSetupModalOpen] = useState<boolean>(false);
   const [activeSetupTab, setActiveSetupTab] = useState<PlatformKey>('youtube');
+
+  // Prevent background scrolling while modal is open, and handle Escape key
+  useEffect(() => {
+    if (connectModalPlatform || setupModalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          if (!savingCredentials) {
+            setConnectModalPlatform(null);
+            setSetupModalOpen(false);
+          }
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [connectModalPlatform, setupModalOpen, savingCredentials]);
 
   // Copied link helper
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -1409,17 +1434,22 @@ export function PublishingDashboard({
       </div>
 
       {/* ====================================================================
-          CONNECT / CONFIGURE PLATFORM CREDENTIALS MODAL
+          CONNECT / CONFIGURE PLATFORM CREDENTIALS MODAL (PORTAL DIALOG)
           ==================================================================== */}
-      {connectModalPlatform && (
-        <div className="modal-backdrop" onClick={() => !savingCredentials && setConnectModalPlatform(null)}>
-          <div className="modal-card connect-platform-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title-wrap">
-                <Key size={20} color="var(--accent-primary)" />
+      {connectModalPlatform && typeof document !== 'undefined' && createPortal(
+        <div
+          className="modal-portal-overlay"
+          onClick={() => !savingCredentials && setConnectModalPlatform(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-portal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-portal-header">
+              <div className="modal-portal-title-wrap">
+                <Key size={22} color="#4263EB" />
                 <div>
                   <h3>Connect & Configure {PLATFORM_CONFIG_DEFINITIONS[connectModalPlatform].name}</h3>
-                  <span className="modal-subtitle">
+                  <span className="modal-portal-subtitle">
                     {PLATFORM_CONFIG_DEFINITIONS[connectModalPlatform].subtitle}
                   </span>
                 </div>
@@ -1429,16 +1459,17 @@ export function PublishingDashboard({
                 className="btn-close-modal"
                 onClick={() => setConnectModalPlatform(null)}
                 disabled={savingCredentials}
+                title="Close dialog (Escape)"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="modal-body-content">
-              <div className="security-notice-box">
-                <ShieldCheck size={16} color="var(--neon-cyan)" />
+            <div className="modal-portal-body">
+              <div className="modal-security-badge">
+                <ShieldCheck size={18} color="#2563EB" style={{ flexShrink: 0, marginTop: '2px' }} />
                 <span>
-                  All credentials are securely saved into your local <code>backend/.env</code> file. Secrets are never exposed to the browser or client-side logs.
+                  All credentials are securely saved into your local <code>backend/.env</code> file. Secrets are never exposed to browser or client-side logs.
                 </span>
               </div>
 
@@ -1797,10 +1828,10 @@ export function PublishingDashboard({
               </div>
             </div>
 
-            <div className="modal-footer">
+            <div className="modal-portal-footer">
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn btn-modal-cancel"
                 onClick={() => setConnectModalPlatform(null)}
                 disabled={savingCredentials}
               >
@@ -1808,7 +1839,7 @@ export function PublishingDashboard({
               </button>
               <button
                 type="button"
-                className="btn btn-primary btn-save-test"
+                className="btn btn-modal-save"
                 onClick={handleSaveCredentials}
                 disabled={savingCredentials}
               >
@@ -1826,24 +1857,31 @@ export function PublishingDashboard({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ====================================================================
-          GENERAL SETUP GUIDE MODAL
+          GENERAL SETUP GUIDE MODAL (PORTAL DIALOG)
           ==================================================================== */}
-      {setupModalOpen && (
-        <div className="modal-backdrop" onClick={() => setSetupModalOpen(false)}>
-          <div className="modal-card setup-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title-wrap">
-                <ShieldCheck size={20} color="var(--accent-primary)" />
+      {setupModalOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="modal-portal-overlay"
+          onClick={() => setSetupModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="modal-portal-card" style={{ maxWidth: '720px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-portal-header">
+              <div className="modal-portal-title-wrap">
+                <ShieldCheck size={22} color="#4263EB" />
                 <h3>Platform Credentials & One-Time Setup Guide</h3>
               </div>
               <button
                 type="button"
                 className="btn-close-modal"
                 onClick={() => setSetupModalOpen(false)}
+                title="Close guide (Escape)"
               >
                 <X size={18} />
               </button>
@@ -1995,17 +2033,18 @@ export function PublishingDashboard({
               )}
             </div>
 
-            <div className="modal-footer">
+            <div className="modal-portal-footer">
               <button
                 type="button"
-                className="btn btn-primary"
+                className="btn btn-modal-save"
                 onClick={() => setSetupModalOpen(false)}
               >
                 Close Guide
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
