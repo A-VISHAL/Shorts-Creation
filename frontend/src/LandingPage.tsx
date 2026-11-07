@@ -59,11 +59,7 @@ export function LandingPage({ onNavigateStudio }: LandingPageProps) {
       <div className="lp-header-wrap">
         <nav className="lp-nav">
           <a href="#" className="lp-brand">
-            <div className="lp-brand-icon">
-              <Zap size={18} />
-            </div>
             <span className="lp-brand-text">Motivational Shorts Studio</span>
-            <span className="lp-brand-tag">v2.4 AI</span>
           </a>
 
           <ul className="lp-nav-links">
@@ -690,9 +686,6 @@ export function LandingPage({ onNavigateStudio }: LandingPageProps) {
           <div className="lp-footer-grid">
             <div>
               <div className="lp-brand">
-                <div className="lp-brand-icon">
-                  <Zap size={18} />
-                </div>
                 <span className="lp-brand-text">Motivational Shorts Studio</span>
               </div>
               <p className="lp-footer-brand-desc">

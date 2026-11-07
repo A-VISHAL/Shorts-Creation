@@ -17,7 +17,6 @@ import {
   Workflow,
   ExternalLink,
   X,
-  Zap,
   Film,
   Type,
   FileText,
@@ -391,9 +390,6 @@ export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = 
                 <span>Home</span>
               </button>
             )}
-            <div className="brand-icon-wrap">
-              <Zap size={18} />
-            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
               <span className="brand-name">Motivational Shorts Studio</span>
               <span className="shorts-badge">9:16 Shorts</span>
