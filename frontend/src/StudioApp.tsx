@@ -105,11 +105,8 @@ const PRESETS: Preset[] = [
 ];
 
 export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = {}) {
-  // Theme State (Dark / Monochromatic Light)
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    const saved = localStorage.getItem('shorts_theme');
-    return saved === 'dark' ? 'dark' : 'light';
-  });
+  // Theme State (Default to Dark Cinematic)
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
