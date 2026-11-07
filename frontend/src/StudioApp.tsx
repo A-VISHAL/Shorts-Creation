@@ -375,7 +375,7 @@ export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = 
   const isTunnelOk = connectionStatus?.tunnel.status === 'connected';
 
   return (
-    <div className="app-root">
+    <div className={`app-root mode-${activeMode}`}>
       {/* ====================================================================
           TOP APPLICATION HEADER
           ==================================================================== */}

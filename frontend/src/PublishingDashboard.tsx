@@ -566,7 +566,7 @@ export function PublishingDashboard({
   const renderConnectionPill = (platformKey: PlatformKey) => {
     if (testingPlatforms[platformKey]) {
       return (
-        <span className="status-pill status-testing">
+        <span className="platform-conn-pill testing">
           <RefreshCw size={12} className="spin" />
           <span>Testing...</span>
         </span>
@@ -576,7 +576,7 @@ export function PublishingDashboard({
     const conn = connections ? connections[platformKey] : null;
     if (!conn) {
       return (
-        <span className="status-pill status-not-connected">
+        <span className="platform-conn-pill unconfigured">
           <AlertCircle size={12} />
           <span>Not Connected</span>
         </span>
@@ -585,7 +585,7 @@ export function PublishingDashboard({
 
     if (conn.connected) {
       return (
-        <span className="status-pill status-connected">
+        <span className="platform-conn-pill connected">
           <CheckCircle2 size={12} />
           <span>Connected</span>
         </span>
@@ -594,7 +594,7 @@ export function PublishingDashboard({
 
     if (conn.status === 'Error') {
       return (
-        <span className="status-pill status-error">
+        <span className="platform-conn-pill error">
           <AlertCircle size={12} />
           <span>Error</span>
         </span>
@@ -602,7 +602,7 @@ export function PublishingDashboard({
     }
 
     return (
-      <span className="status-pill status-not-connected">
+      <span className="platform-conn-pill unconfigured">
         <AlertCircle size={12} />
         <span>Not Connected</span>
       </span>
@@ -767,6 +767,25 @@ export function PublishingDashboard({
               onChange={(e) => setQuote(e.target.value)}
               disabled={publishing}
             />
+          </div>
+
+          <div className="content-specs-strip">
+            <div className="spec-item">
+              <span className="spec-label">Format</span>
+              <span className="spec-val">9:16 Vertical MP4</span>
+            </div>
+            <div className="spec-item">
+              <span className="spec-label">Resolution</span>
+              <span className="spec-val">1080 × 1920 HD</span>
+            </div>
+            <div className="spec-item">
+              <span className="spec-label">Max Length</span>
+              <span className="spec-val">≤ 60s Shorts</span>
+            </div>
+            <div className="spec-item">
+              <span className="spec-label">Distribution</span>
+              <span className="spec-val">Parallel APIs</span>
+            </div>
           </div>
         </div>
 
@@ -944,6 +963,17 @@ export function PublishingDashboard({
               </>
             )}
           </button>
+
+          {(noneSelected || !videoUrl.trim()) && !publishing && (
+            <div className="publish-disabled-hint">
+              <Info size={13} />
+              <span>
+                {!videoUrl.trim()
+                  ? 'Enter a target video file path or URL above to enable publishing.'
+                  : 'Select at least one platform above to publish.'}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
