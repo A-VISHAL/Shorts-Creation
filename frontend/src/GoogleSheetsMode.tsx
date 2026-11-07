@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   FileSpreadsheet,
   RefreshCw,
@@ -92,6 +92,25 @@ export function GoogleSheetsMode({ config, showToast, onPublishToDashboard }: Go
   const [activePreviewIndex, setActivePreviewIndex] = useState<number>(0);
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState<boolean>(false);
+
+  // 3D Parallax Tilt State
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [previewTilt, setPreviewTilt] = useState({ x: 0, y: 0 });
+
+  const handlePreviewMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!previewRef.current) return;
+    const rect = previewRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    setPreviewTilt({
+      x: Number((-y * 14).toFixed(2)),
+      y: Number((x * 16).toFixed(2)),
+    });
+  };
+
+  const handlePreviewMouseLeave = () => {
+    setPreviewTilt({ x: 0, y: 0 });
+  };
 
   // Load backend Google Sheets auth status on mount
   useEffect(() => {
@@ -849,50 +868,121 @@ export function GoogleSheetsMode({ config, showToast, onPublishToDashboard }: Go
               <span className="resolution-pill">1080 × 1920 MP4</span>
             </div>
 
-            {/* Phone Bezel Player */}
-            <div className="canvas-frame">
-              <div className="phone-notch" />
-
-              {/* Progress Overlay */}
-              {generating && (
-                <div className="progress-overlay">
-                  <div className="progress-pct-huge">
-                    {totalBatchSize > 0 ? Math.round((currentBatchIndex / totalBatchSize) * 100) : 0}%
+            {/* 3D Stage with Mouse Parallax */}
+            <div
+              className="studio-3d-stage"
+              ref={previewRef}
+              onMouseMove={handlePreviewMouseMove}
+              onMouseLeave={handlePreviewMouseLeave}
+            >
+              <div
+                className="studio-3d-canvas"
+                style={{
+                  transform: `rotateX(${previewTilt.x}deg) rotateY(${previewTilt.y}deg)`,
+                }}
+              >
+                {/* Floating Chip 1 (Left Top) */}
+                <div className="studio-floating-chip chip-left-top">
+                  <div className="chip-icon chip-icon-cyan">
+                    <FileSpreadsheet size={15} />
                   </div>
-                  <div className="progress-track-bg">
-                    <div
-                      className="progress-track-fill"
-                      style={{
-                        width: `${totalBatchSize > 0 ? (currentBatchIndex / totalBatchSize) * 100 : 0}%`,
-                      }}
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700 }}>Sheets Auto-Sync</div>
+                    <div style={{ fontSize: '0.65rem', fontFamily: 'var(--saas-mono, monospace)' }}>Dynamic Rows</div>
+                  </div>
+                </div>
+
+                {/* Floating Chip 2 (Right Top) */}
+                <div className="studio-floating-chip chip-right-top">
+                  <div className="chip-icon chip-icon-violet">
+                    <Sparkles size={15} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700 }}>AI Canvas</div>
+                    <div style={{ fontSize: '0.65rem', fontFamily: 'var(--saas-mono, monospace)' }}>1080×1920 MP4</div>
+                  </div>
+                </div>
+
+                {/* Floating Chip 3 (Left Bottom) */}
+                <div className="studio-floating-chip chip-left-bottom">
+                  <div className="chip-icon chip-icon-pink">
+                    <Music size={15} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700 }}>Audio Normalizer</div>
+                    <div style={{ fontSize: '0.65rem', fontFamily: 'var(--saas-mono, monospace)' }}>48kHz Stereo</div>
+                  </div>
+                </div>
+
+                {/* Realistic 3D Phone Frame */}
+                <div className="canvas-frame">
+                  <div className="phone-notch" />
+
+                  {/* Progress Overlay */}
+                  {generating && (
+                    <div className="progress-overlay">
+                      <div className="progress-pct-huge">
+                        {totalBatchSize > 0 ? Math.round((currentBatchIndex / totalBatchSize) * 100) : 0}%
+                      </div>
+                      <div className="progress-track-bg">
+                        <div
+                          className="progress-track-fill"
+                          style={{
+                            width: `${totalBatchSize > 0 ? (currentBatchIndex / totalBatchSize) * 100 : 0}%`,
+                          }}
+                        />
+                      </div>
+                      <p className="generating-status-sub">
+                        {currentProgressText || 'Rendering vertical short...'}
+                      </p>
+                    </div>
+                  )}
+
+                  {currentPreview?.videoUrl ? (
+                    <video
+                      src={currentPreview.videoUrl}
+                      controls
+                      autoPlay
+                      playsInline
+                      className="active-short-video"
+                      key={currentPreview.videoUrl}
                     />
-                  </div>
-                  <p className="generating-status-sub">
-                    {currentProgressText || 'Rendering vertical short...'}
-                  </p>
-                </div>
-              )}
+                  ) : (
+                    <div className="canvas-cinematic-placeholder">
+                      <div className="cinematic-bg-aurora" />
+                      <div className="cinematic-mountain-silhouette" />
 
-              {currentPreview?.videoUrl ? (
-                <video
-                  src={currentPreview.videoUrl}
-                  controls
-                  autoPlay
-                  playsInline
-                  className="active-short-video"
-                  key={currentPreview.videoUrl}
-                />
-              ) : (
-                <div className="canvas-empty-state">
-                  <div className="canvas-empty-icon">
-                    <Sparkles size={26} />
-                  </div>
-                  <span className="canvas-empty-title">Automated Shorts Canvas</span>
-                  <p className="canvas-empty-desc">
-                    Connect your Google Sheet and click 'Generate Shorts' to render inspiring 9:16 vertical videos.
-                  </p>
+                      <div className="cinematic-top-pill">
+                        <Sparkles size={11} color="#4263EB" />
+                        <span>SHEETS 9:16 PREVIEW</span>
+                      </div>
+
+                      <div className="cinematic-quote-box">
+                        <div className="cinematic-quote-title">
+                          {rows.length > 0 && rows[0].title ? rows[0].title : 'AUTOMATED PRODUCTION'}
+                        </div>
+                        <p className="cinematic-quote-text">
+                          "{rows.length > 0 && rows[0].quote ? rows[0].quote : 'Connect your Google Sheet and click Generate Shorts to produce inspiring vertical videos.'}"
+                        </p>
+                      </div>
+
+                      <div className="cinematic-bottom-meta">
+                        <div className="cinematic-soundtrack-name">
+                          <FileSpreadsheet size={12} color="#7955E8" />
+                          <span>{selectedSheet || 'Sheet Data Stream'}</span>
+                        </div>
+                        <div className="cinematic-eq">
+                          <div className="eq-bar" />
+                          <div className="eq-bar" />
+                          <div className="eq-bar" />
+                          <div className="eq-bar" />
+                          <div className="eq-bar" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Action Bar for Currently Displayed Video */}

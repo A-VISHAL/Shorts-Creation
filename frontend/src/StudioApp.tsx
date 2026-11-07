@@ -29,6 +29,7 @@ import {
   Sliders,
 } from 'lucide-react';
 import './studio_redesign.css';
+import './saas_light_theme.css';
 import { GoogleSheetsMode } from './GoogleSheetsMode';
 import { PublishingDashboard } from './PublishingDashboard';
 import {
@@ -107,7 +108,7 @@ export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = 
   // Theme State (Dark / Monochromatic Light)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('shorts_theme');
-    return saved === 'light' ? 'light' : 'dark';
+    return saved === 'dark' ? 'dark' : 'light';
   });
 
   useEffect(() => {

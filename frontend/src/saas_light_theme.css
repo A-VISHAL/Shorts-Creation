@@ -1,0 +1,667 @@
+/* ==============================================================================
+   MOTIVATIONAL SHORTS STUDIO - PREMIUM SAAS LIGHT THEME
+   Inspired by Stripe Dashboard, Linear, Vercel, Framer
+   ============================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root, [data-theme="light"] {
+  /* Palette Tokens */
+  --saas-bg: #F5F7FB;
+  --saas-card: #FFFFFF;
+  --saas-card-hover: #FAFBFC;
+  --saas-border: #E2E8F0;
+  --saas-border-subtle: #EDF2F7;
+  --saas-border-hover: #CBD5E1;
+  --saas-border-focus: #4263EB;
+
+  --saas-text-primary: #172033;
+  --saas-text-secondary: #64748B;
+  --saas-text-muted: #94A3B8;
+
+  --saas-accent-blue: #4263EB;
+  --saas-accent-violet: #7955E8;
+  --saas-accent-gradient: linear-gradient(135deg, #4263EB 0%, #7955E8 100%);
+  --saas-accent-subtle: rgba(66, 99, 235, 0.08);
+
+  --saas-success-bg: #ECFDF5;
+  --saas-success-border: #A7F3D0;
+  --saas-success-text: #065F46;
+
+  --saas-warning-bg: #FFFBEB;
+  --saas-warning-border: #FDE68A;
+  --saas-warning-text: #92400E;
+
+  --saas-error-bg: #FEF2F2;
+  --saas-error-border: #FECACA;
+  --saas-error-text: #991B1B;
+
+  --saas-shadow-sm: 0 1px 3px rgba(23, 32, 51, 0.04), 0 1px 2px rgba(23, 32, 51, 0.02);
+  --saas-shadow-card: 0 4px 20px -2px rgba(23, 32, 51, 0.05), 0 2px 6px -1px rgba(23, 32, 51, 0.03);
+  --saas-shadow-elevated: 0 12px 32px -4px rgba(23, 32, 51, 0.08), 0 4px 12px -2px rgba(23, 32, 51, 0.04);
+  --saas-shadow-btn: 0 4px 14px rgba(66, 99, 235, 0.3);
+
+  --saas-font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --saas-mono: 'JetBrains Mono', monospace;
+}
+
+/* ==============================================================================
+   GLOBAL LIGHT THEME LAYOUT
+   ============================================================================== */
+[data-theme="light"] body {
+  background-color: var(--saas-bg) !important;
+  color: var(--saas-text-primary) !important;
+}
+
+[data-theme="light"] .app-root {
+  background-color: var(--saas-bg) !important;
+  color: var(--saas-text-primary) !important;
+  font-family: var(--saas-font) !important;
+}
+
+[data-theme="light"] .app-root::before,
+[data-theme="light"] .app-root::after {
+  display: none !important;
+}
+
+/* Light Theme Floating Navigation Bar */
+[data-theme="light"] .app-header {
+  background: transparent !important;
+}
+
+[data-theme="light"] .header-inner {
+  background: #FFFFFF !important;
+  border: 1px solid var(--saas-border) !important;
+  box-shadow: 0 4px 20px -2px rgba(23, 32, 51, 0.06), 0 1px 3px rgba(23, 32, 51, 0.04) !important;
+}
+
+[data-theme="light"] .brand-name {
+  color: var(--saas-text-primary) !important;
+}
+
+[data-theme="light"] .shorts-badge {
+  background: #EFF6FF !important;
+  color: var(--saas-accent-blue) !important;
+  border: 1px solid #BFDBFE !important;
+}
+
+[data-theme="light"] .header-nav-modes {
+  background: #F1F5F9 !important;
+  border: 1px solid var(--saas-border) !important;
+}
+
+[data-theme="light"] .nav-mode-btn {
+  color: var(--saas-text-secondary) !important;
+}
+
+[data-theme="light"] .nav-mode-btn:hover {
+  color: var(--saas-text-primary) !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+}
+
+[data-theme="light"] .nav-mode-btn.active {
+  background: #FFFFFF !important;
+  color: var(--saas-accent-blue) !important;
+  border-color: var(--saas-border) !important;
+  box-shadow: 0 2px 6px rgba(23, 32, 51, 0.06) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .status-pill {
+  background: #FFFFFF !important;
+  border: 1px solid var(--saas-border) !important;
+  color: var(--saas-text-secondary) !important;
+  box-shadow: var(--saas-shadow-sm) !important;
+}
+
+[data-theme="light"] .btn-theme-toggle,
+[data-theme="light"] .btn-header-config {
+  background: #FFFFFF !important;
+  border: 1px solid var(--saas-border) !important;
+  color: var(--saas-text-secondary) !important;
+  box-shadow: var(--saas-shadow-sm) !important;
+}
+
+[data-theme="light"] .btn-theme-toggle:hover,
+[data-theme="light"] .btn-header-config:hover {
+  background: #F8FAFC !important;
+  color: var(--saas-text-primary) !important;
+  border-color: var(--saas-border-hover) !important;
+}
+
+/* ==============================================================================
+   WORKSPACE INTRO & TECHNOLOGY BADGES
+   ============================================================================== */
+[data-theme="light"] .workspace-intro {
+  border-bottom: 1px solid var(--saas-border) !important;
+}
+
+[data-theme="light"] .intro-text h1 {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: var(--saas-text-primary) !important;
+  color: var(--saas-text-primary) !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .intro-text p {
+  color: var(--saas-text-secondary) !important;
+}
+
+[data-theme="light"] .engine-tag {
+  background: #FFFFFF !important;
+  border: 1px solid var(--saas-border) !important;
+  color: var(--saas-text-secondary) !important;
+  box-shadow: var(--saas-shadow-sm) !important;
+}
+
+/* ==============================================================================
+   GOOGLE SHEETS AUTOMATED SHORTS PRODUCTION (LIGHT THEME)
+   ============================================================================== */
+[data-theme="light"] .sheets-mode-container .module-card,
+[data-theme="light"] .sheets-mode-container .preview-container-card {
+  background: #FFFFFF !important;
+  border: 1px solid var(--saas-border) !important;
+  box-shadow: var(--saas-shadow-card) !important;
+  border-radius: 16px !important;
+}
+
+[data-theme="light"] .sheets-mode-container .module-card::before {
+  display: none !important;
+}
+
+[data-theme="light"] .sheets-mode-container .module-header {
+  border-bottom: 1px solid var(--saas-border-subtle) !important;
+}
+
+[data-theme="light"] .sheets-mode-container .module-title {
+  color: var(--saas-text-primary) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .sheets-mode-container .module-step-badge {
+  background: #EEF2FF !important;
+  color: var(--saas-accent-blue) !important;
+  border: 1px solid #C7D2FE !important;
+}
+
+[data-theme="light"] .btn-setup-guide {
+  background: #F8FAFC !important;
+  border: 1px solid var(--saas-border) !important;
+  color: var(--saas-text-secondary) !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="light"] .btn-setup-guide:hover {
+  background: #F1F5F9 !important;
+  color: var(--saas-text-primary) !important;
+  border-color: var(--saas-border-hover) !important;
+}
+
+/* Service Account Warning Banner */
+[data-theme="light"] .sheets-auth-banner.not-configured {
+  background: var(--saas-warning-bg) !important;
+  border: 1px solid var(--saas-warning-border) !important;
+  color: var(--saas-warning-text) !important;
+  border-radius: 10px !important;
+}
+
+[data-theme="light"] .sheets-auth-banner.not-configured .auth-status-title {
+  color: var(--saas-warning-text) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .sheets-auth-banner.not-configured .auth-status-sub {
+  color: #B45309 !important;
+}
+
+[data-theme="light"] .sheets-auth-banner.not-configured code {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #92400E !important;
+}
+
+[data-theme="light"] .sheets-auth-banner.configured {
+  background: var(--saas-success-bg) !important;
+  border: 1px solid var(--saas-success-border) !important;
+  color: var(--saas-success-text) !important;
+}
+
+[data-theme="light"] .sheets-auth-banner.configured .auth-status-title {
+  color: var(--saas-success-text) !important;
+  font-weight: 700 !important;
+}
+
+/* Spreadsheet Input & Connect Button */
+[data-theme="light"] .sheets-url-row .studio-input {
+  background: #FFFFFF !important;
+  border: 1px solid var(--saas-border) !important;
+  color: var(--saas-text-primary) !important;
+  border-radius: 10px !important;
+}
+
+[data-theme="light"] .sheets-url-row .studio-input:focus {
+  border-color: var(--saas-accent-blue) !important;
+  box-shadow: 0 0 0 3px rgba(66, 99, 235, 0.15) !important;
+}
+
+[data-theme="light"] .btn-inspect-sheet {
+  background: var(--saas-accent-gradient) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  box-shadow: var(--saas-shadow-btn) !important;
+}
+
+[data-theme="light"] .btn-inspect-sheet:hover:not(:disabled) {
+  opacity: 0.95 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Batch Parameters Grid in Light Theme */
+[data-theme="light"] .segmented-control {
+  background: #F1F5F9 !important;
+  border: 1px solid var(--saas-border) !important;
+  border-radius: 10px !important;
+  padding: 4px !important;
+}
+
+[data-theme="light"] .segmented-btn {
+  color: var(--saas-text-secondary) !important;
+  border-radius: 7px !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="light"] .segmented-btn:hover {
+  color: var(--saas-text-primary) !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+}
+
+[data-theme="light"] .segmented-btn.active {
+  background: #FFFFFF !important;
+  color: var(--saas-accent-blue) !important;
+  border: 1px solid var(--saas-border) !important;
+  box-shadow: 0 1px 3px rgba(23, 32, 51, 0.08) !important;
+  font-weight: 700 !important;
+}
+
+/* Light Theme Style Cards (Cinematic Dark / Clean Minimal / High Impact) */
+[data-theme="light"] .style-card {
+  background: #FFFFFF !important;
+  border: 1.5px solid var(--saas-border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--saas-shadow-sm) !important;
+}
+
+[data-theme="light"] .style-card:hover {
+  border-color: var(--saas-border-hover) !important;
+  background: #FAFBFC !important;
+}
+
+[data-theme="light"] .style-card.selected {
+  background: #F0F4FF !important;
+  border-color: var(--saas-accent-blue) !important;
+  box-shadow: 0 0 0 1px var(--saas-accent-blue) !important;
+}
+
+[data-theme="light"] .style-title {
+  color: var(--saas-text-primary) !important;
+}
+
+[data-theme="light"] .style-radio {
+  border-color: #CBD5E1 !important;
+}
+
+[data-theme="light"] .style-card.selected .style-radio {
+  border-color: var(--saas-accent-blue) !important;
+  background: var(--saas-accent-blue) !important;
+}
+
+[data-theme="light"] .style-desc {
+  color: var(--saas-text-secondary) !important;
+}
+
+/* Light Theme Sheet Rows Table */
+[data-theme="light"] .sheet-table-wrap {
+  border: 1px solid var(--saas-border) !important;
+  background: #FFFFFF !important;
+  border-radius: 12px !important;
+}
+
+[data-theme="light"] .sheet-rows-table th {
+  background: #F8FAFC !important;
+  color: var(--saas-text-secondary) !important;
+  border-bottom: 1px solid var(--saas-border) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .sheet-rows-table td {
+  border-bottom: 1px solid var(--saas-border-subtle) !important;
+  color: var(--saas-text-primary) !important;
+}
+
+[data-theme="light"] .sheet-rows-table tr:hover td {
+  background: #F8FAFC !important;
+}
+
+/* Generate Batch Button */
+[data-theme="light"] .btn-generate {
+  background: var(--saas-accent-gradient) !important;
+  border: none !important;
+  color: #FFFFFF !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: var(--saas-shadow-btn) !important;
+  padding: 1.05rem 1.85rem !important;
+  font-size: 1.05rem !important;
+}
+
+[data-theme="light"] .btn-generate:hover:not(:disabled) {
+  opacity: 0.95 !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Light Theme 3D Phone Preview in Sheets Mode */
+[data-theme="light"] .sheets-mode-container .canvas-frame {
+  background: #090C15 !important;
+  border: 10px solid #CBD5E1 !important;
+  box-shadow: 0 25px 60px -10px rgba(23, 32, 51, 0.2), 0 0 1px 1px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] .studio-floating-chip {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid var(--saas-border) !important;
+  box-shadow: 0 10px 25px -5px rgba(23, 32, 51, 0.1) !important;
+  color: var(--saas-text-primary) !important;
+}
+
+[data-theme="light"] .studio-floating-chip div div:first-child {
+  color: var(--saas-text-primary) !important;
+}
+
+[data-theme="light"] .studio-floating-chip div div:last-child {
+  color: var(--saas-text-secondary) !important;
+}
+
+/* ==============================================================================
+   MULTI-PLATFORM VIDEO PUBLISHING CENTER (LIGHT THEME)
+   ============================================================================== */
+[data-theme="light"] .publishing-dashboard-root {
+  background: transparent !important;
+}
+
+/* Header Card */
+[data-theme="light"] .publish-header-card {
+  background: #FFFFFF !important;
+  border: 1px solid var(--saas-border) !important;
+  box-shadow: var(--saas-shadow-card) !important;
+  border-radius: 16px !important;
+}
+
+[data-theme="light"] .publish-header-content h2 {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: var(--saas-text-primary) !important;
+  color: var(--saas-text-primary) !important;
+  font-weight: 800 !important;
+  font-size: 1.75rem !important;
+}
+
+[data-theme="light"] .publish-header-content p {
+  color: var(--saas-text-secondary) !important;
+}
+
+[data-theme="light"] .publish-header-actions .btn {
+  background: #FFFFFF !important;
+  border: 1px solid var(--saas-border) !important;
+  color: var(--saas-text-secondary) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--saas-shadow-sm) !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="light"] .publish-header-actions .btn:hover {
+  background: #F8FAFC !important;
+  color: var(--saas-text-primary) !important;
+  border-color: var(--saas-border-hover) !important;
+}
+
+/* Main 2-Column Cards */
+[data-theme="light"] .publish-config-card,
+[data-theme="light"] .publish-dispatch-card {
+  background: #FFFFFF !important;
+  border: 1px solid var(--saas-border) !important;
+  box-shadow: var(--saas-shadow-card) !important;
+  border-radius: 16px !important;
+}
+
+[data-theme="light"] .section-title-wrap h3 {
+  color: var(--saas-text-primary) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .form-group label {
+  color: var(--saas-text-primary) !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="light"] .input-field,
+[data-theme="light"] .textarea-field,
+[data-theme="light"] .select-field {
+  background: #FFFFFF !important;
+  border: 1px solid var(--saas-border) !important;
+  color: var(--saas-text-primary) !important;
+  border-radius: 9px !important;
+}
+
+[data-theme="light"] .input-field:focus,
+[data-theme="light"] .textarea-field:focus,
+[data-theme="light"] .select-field:focus {
+  border-color: var(--saas-accent-blue) !important;
+  box-shadow: 0 0 0 3px rgba(66, 99, 235, 0.15) !important;
+  outline: none !important;
+}
+
+[data-theme="light"] .btn-verify-video {
+  background: #F8FAFC !important;
+  border: 1px solid var(--saas-border) !important;
+  color: var(--saas-text-secondary) !important;
+  border-radius: 9px !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="light"] .btn-verify-video:hover:not(:disabled) {
+  background: #F1F5F9 !important;
+  color: var(--saas-text-primary) !important;
+}
+
+/* Platform Rows in Dispatch Control */
+[data-theme="light"] .platform-toggle-row {
+  background: #F8FAFC !important;
+  border: 1.5px solid var(--saas-border) !important;
+  border-radius: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-theme="light"] .platform-toggle-row:hover {
+  border-color: var(--saas-border-hover) !important;
+  background: #F1F5F9 !important;
+}
+
+[data-theme="light"] .platform-toggle-row.active {
+  background: #FFFFFF !important;
+  border-color: var(--saas-accent-blue) !important;
+  box-shadow: 0 2px 8px rgba(66, 99, 235, 0.1) !important;
+}
+
+[data-theme="light"] .brand-name {
+  color: var(--saas-text-primary) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .brand-desc {
+  color: var(--saas-text-secondary) !important;
+}
+
+[data-theme="light"] .btn-text-action {
+  color: var(--saas-accent-blue) !important;
+  font-weight: 600 !important;
+}
+
+/* Status Badges */
+[data-theme="light"] .mini-conn-badge.connected {
+  background: var(--saas-success-bg) !important;
+  border: 1px solid var(--saas-success-border) !important;
+  color: var(--saas-success-text) !important;
+}
+
+[data-theme="light"] .mini-conn-badge.disconnected {
+  background: var(--saas-warning-bg) !important;
+  border: 1px solid var(--saas-warning-border) !important;
+  color: var(--saas-warning-text) !important;
+}
+
+/* Publish Main Button */
+[data-theme="light"] .btn-publish-main {
+  background: var(--saas-accent-gradient) !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: var(--saas-shadow-btn) !important;
+  padding: 1rem 1.75rem !important;
+  font-size: 1.05rem !important;
+}
+
+[data-theme="light"] .btn-publish-main:hover:not(:disabled) {
+  opacity: 0.95 !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ==============================================================================
+   4 PLATFORM CONNECTION CARDS BELOW
+   ============================================================================== */
+[data-theme="light"] .platform-cards-grid {
+  gap: 1.5rem !important;
+}
+
+[data-theme="light"] .platform-card {
+  background: #FFFFFF !important;
+  border: 1px solid var(--saas-border) !important;
+  box-shadow: var(--saas-shadow-card) !important;
+  border-radius: 16px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+[data-theme="light"] .platform-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+[data-theme="light"] .card-youtube::before { background: #EF4444; }
+[data-theme="light"] .card-discord::before { background: #5865F2; }
+[data-theme="light"] .card-telegram::before { background: #0088CC; }
+[data-theme="light"] .card-instagram::before { background: linear-gradient(90deg, #F58529, #DD2A7B, #8134AF); }
+
+[data-theme="light"] .brand-title h4 {
+  color: var(--saas-text-primary) !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="light"] .brand-subtitle {
+  color: var(--saas-text-secondary) !important;
+}
+
+[data-theme="light"] .card-account-banner.connected {
+  background: var(--saas-success-bg) !important;
+  border: 1px solid var(--saas-success-border) !important;
+  color: var(--saas-success-text) !important;
+}
+
+[data-theme="light"] .card-error-notice {
+  background: var(--saas-error-bg) !important;
+  border: 1px solid var(--saas-error-border) !important;
+  color: var(--saas-error-text) !important;
+  border-radius: 8px !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 0.84rem !important;
+}
+
+[data-theme="light"] .card-missing-keys-box {
+  background: var(--saas-warning-bg) !important;
+  border: 1px solid var(--saas-warning-border) !important;
+  color: var(--saas-warning-text) !important;
+  border-radius: 8px !important;
+}
+
+[data-theme="light"] .missing-key-tag {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #92400E !important;
+}
+
+[data-theme="light"] .btn-connect {
+  background: #FFFFFF !important;
+  border: 1px solid var(--saas-border) !important;
+  color: var(--saas-text-primary) !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  box-shadow: var(--saas-shadow-sm) !important;
+}
+
+[data-theme="light"] .btn-connect:hover {
+  background: #F8FAFC !important;
+  border-color: var(--saas-border-hover) !important;
+}
+
+[data-theme="light"] .btn-test {
+  background: #F8FAFC !important;
+  border: 1px solid var(--saas-border) !important;
+  color: var(--saas-text-secondary) !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="light"] .btn-test:hover {
+  background: #F1F5F9 !important;
+  color: var(--saas-text-primary) !important;
+}
+
+/* Modals in Light Theme */
+[data-theme="light"] .modal-dialog,
+[data-theme="light"] .setup-modal-dialog {
+  background: #FFFFFF !important;
+  border: 1px solid var(--saas-border) !important;
+  box-shadow: var(--saas-shadow-elevated) !important;
+  border-radius: 16px !important;
+  color: var(--saas-text-primary) !important;
+}
+
+[data-theme="light"] .modal-top,
+[data-theme="light"] .setup-modal-header {
+  border-bottom: 1px solid var(--saas-border) !important;
+}
+
+[data-theme="light"] .modal-heading,
+[data-theme="light"] .setup-modal-header h3 {
+  color: var(--saas-text-primary) !important;
+  font-weight: 800 !important;
+}
+
+[data-theme="light"] .modal-close-btn,
+[data-theme="light"] .setup-modal-close {
+  background: #F8FAFC !important;
+  border: 1px solid var(--saas-border) !important;
+  color: var(--saas-text-secondary) !important;
+}
+
+[data-theme="light"] .modal-close-btn:hover,
+[data-theme="light"] .setup-modal-close:hover {
+  background: #F1F5F9 !important;
+  color: var(--saas-text-primary) !important;
+}
