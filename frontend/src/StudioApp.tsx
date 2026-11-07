@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Play,
   Download,
@@ -26,7 +26,9 @@ import {
   FileSpreadsheet,
   Share2,
   ArrowLeft,
+  Sliders,
 } from 'lucide-react';
+import './studio_redesign.css';
 import { GoogleSheetsMode } from './GoogleSheetsMode';
 import { PublishingDashboard } from './PublishingDashboard';
 import {
@@ -152,6 +154,25 @@ export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = 
   const [title, setTitle] = useState('Build Your Future');
   const [duration, setDuration] = useState<number>(30);
   const [style, setStyle] = useState<'dark-motivational' | 'minimal-white' | 'bold-motivational'>('dark-motivational');
+
+  // 3D Preview Parallax State
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [previewTilt, setPreviewTilt] = useState({ x: 0, y: 0 });
+
+  const handlePreviewMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!previewRef.current) return;
+    const rect = previewRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    setPreviewTilt({
+      x: Number((-y * 14).toFixed(2)),
+      y: Number((x * 16).toFixed(2)),
+    });
+  };
+
+  const handlePreviewMouseLeave = () => {
+    setPreviewTilt({ x: 0, y: 0 });
+  };
 
   // Workflow & Execution State
   const [loading, setLoading] = useState(false);
@@ -564,10 +585,15 @@ export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = 
                         disabled={loading}
                       >
                         <div className="preset-top">
-                          <span className="preset-name">{p.name}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                            <span className="preset-name">{p.name}</span>
+                            {isSelected && (
+                              <span style={{ fontSize: '0.65rem', color: '#60a5fa', fontWeight: 800, background: 'rgba(59,130,246,0.2)', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>ACTIVE</span>
+                            )}
+                          </div>
                           <span className={`preset-badge ${p.badgeClass}`}>{p.badge}</span>
                         </div>
-                        <p className="preset-snippet">{p.quote}</p>
+                        <p className="preset-snippet">"{p.quote}"</p>
                       </button>
                     );
                   })}
@@ -603,6 +629,10 @@ export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = 
                     disabled={loading}
                     required
                   />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.45rem', fontSize: '0.72rem', color: 'var(--studio-text-muted)' }}>
+                    <span style={{ fontFamily: 'var(--studio-font-mono)' }}>Supported: YouTube Shorts, Reels, MP4, WebM</span>
+                    <span style={{ color: '#38bdf8', fontFamily: 'var(--studio-font-mono)', fontWeight: 600 }}>9:16 Auto-Framing</span>
+                  </div>
                 </div>
 
                 {/* Soundtrack URL */}
@@ -624,6 +654,10 @@ export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = 
                     disabled={loading}
                     required
                   />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.45rem', fontSize: '0.72rem', color: 'var(--studio-text-muted)' }}>
+                    <span style={{ fontFamily: 'var(--studio-font-mono)' }}>Direct Audio Stream / yt-dlp Audio Extractor</span>
+                    <span style={{ color: '#a855f7', fontFamily: 'var(--studio-font-mono)', fontWeight: 600 }}>48kHz Dynamic EQ</span>
+                  </div>
                 </div>
               </div>
 
@@ -679,6 +713,12 @@ export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = 
                     onChange={(e) => setTitle(e.target.value)}
                     disabled={loading}
                   />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.45rem', fontSize: '0.72rem', color: 'var(--studio-text-muted)' }}>
+                    <span style={{ fontFamily: 'var(--studio-font-mono)' }}>
+                      Output: {(title || 'Motivational_Short').replace(/\s+/g, '_')}.mp4
+                    </span>
+                    <span style={{ color: '#fbbf24', fontFamily: 'var(--studio-font-mono)', fontWeight: 600 }}>Metadata Sync Ready</span>
+                  </div>
                 </div>
               </div>
 
@@ -711,6 +751,9 @@ export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = 
                         disabled={loading}
                       >
                         <span>{d}s</span>
+                        <span style={{ fontSize: '0.65rem', opacity: 0.75, marginLeft: '0.35rem', fontWeight: 500 }}>
+                          {d === 10 ? 'Micro' : d === 30 ? 'Viral' : 'Story'}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -736,6 +779,9 @@ export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = 
                           {style === 'dark-motivational' && <div className="style-radio-inner" />}
                         </div>
                       </div>
+                      <div style={{ background: '#070a12', padding: '0.45rem', borderRadius: '6px', textAlign: 'center', margin: '0.3rem 0', border: '1px solid rgba(245,158,11,0.3)' }}>
+                        <span style={{ color: '#fbbf24', fontWeight: 800, fontSize: '0.78rem', letterSpacing: '0.04em' }}>BE RELENTLESS</span>
+                      </div>
                       <span className="style-desc">Gold bold highlights, heavy backdrop vignette</span>
                     </div>
 
@@ -749,6 +795,9 @@ export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = 
                           {style === 'minimal-white' && <div className="style-radio-inner" />}
                         </div>
                       </div>
+                      <div style={{ background: '#0b101d', padding: '0.45rem', borderRadius: '6px', textAlign: 'center', margin: '0.3rem 0', border: '1px solid rgba(255,255,255,0.2)' }}>
+                        <span style={{ color: '#ffffff', fontWeight: 700, fontSize: '0.78rem', letterSpacing: '0.02em' }}>FOCUS ON GROWTH</span>
+                      </div>
                       <span className="style-desc">Sharp white typography with clean black outline</span>
                     </div>
 
@@ -761,6 +810,9 @@ export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = 
                         <div className="style-radio">
                           {style === 'bold-motivational' && <div className="style-radio-inner" />}
                         </div>
+                      </div>
+                      <div style={{ background: '#180a12', padding: '0.45rem', borderRadius: '6px', textAlign: 'center', margin: '0.3rem 0', border: '1px solid rgba(239,68,68,0.35)' }}>
+                        <span style={{ color: '#f43f5e', fontWeight: 900, fontSize: '0.78rem', letterSpacing: '0.04em' }}>NEVER SURRENDER</span>
                       </div>
                       <span className="style-desc">Vibrant red accent title and bold text cards</span>
                     </div>
@@ -808,79 +860,156 @@ export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = 
               <div className="preview-top-bar">
                 <div className="preview-heading">
                   <Play size={18} className="preview-heading-icon" />
-                  <span>Shorts Canvas Preview</span>
+                  <span>Cinematic 3D Video Preview</span>
                 </div>
-                <span className="resolution-pill">1080 × 1920 MP4</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span className="resolution-pill">1080 × 1920 MP4</span>
+                  <span className="resolution-pill" style={{ color: '#34d399', borderColor: 'rgba(52,211,153,0.3)', background: 'rgba(52,211,153,0.1)' }}>
+                    60 FPS
+                  </span>
+                </div>
               </div>
 
-              {/* Centered Phone Bezel Frame */}
-              <div className="canvas-frame">
-                <div className="phone-notch" />
-
-                {/* Loading Progress Tracker Overlay */}
-                {loading && (
-                  <div className="progress-overlay">
-                    <div className="progress-pct-huge">
-                      {Math.round(((currentStageIdx + 1) / 6) * 100)}%
+              {/* 3D Stage with Mouse Parallax */}
+              <div
+                className="studio-3d-stage"
+                ref={previewRef}
+                onMouseMove={handlePreviewMouseMove}
+                onMouseLeave={handlePreviewMouseLeave}
+              >
+                <div
+                  className="studio-3d-canvas"
+                  style={{
+                    transform: `rotateX(${previewTilt.x}deg) rotateY(${previewTilt.y}deg)`,
+                  }}
+                >
+                  {/* Floating Chip 1: Resolution & Aspect Ratio (Left Top) */}
+                  <div className="studio-floating-chip chip-left-top">
+                    <div className="chip-icon chip-icon-cyan">
+                      <Film size={15} />
                     </div>
-                    <div className="progress-track-bg">
-                      <div
-                        className="progress-track-fill"
-                        style={{ width: `${((currentStageIdx + 1) / 6) * 100}%` }}
+                    <div>
+                      <div style={{ color: '#fff', fontSize: '0.72rem', fontWeight: 700 }}>9:16 Canvas</div>
+                      <div style={{ color: '#94a3b8', fontSize: '0.65rem', fontFamily: 'var(--studio-font-mono)' }}>1080×1920 HD</div>
+                    </div>
+                  </div>
+
+                  {/* Floating Chip 2: AI Typography Engine (Right Top) */}
+                  <div className="studio-floating-chip chip-right-top">
+                    <div className="chip-icon chip-icon-violet">
+                      <Sparkles size={15} />
+                    </div>
+                    <div>
+                      <div style={{ color: '#fff', fontSize: '0.72rem', fontWeight: 700 }}>AI Typography</div>
+                      <div style={{ color: '#94a3b8', fontSize: '0.65rem', fontFamily: 'var(--studio-font-mono)' }}>Centered Overlays</div>
+                    </div>
+                  </div>
+
+                  {/* Floating Chip 3: Audio Normalizer (Left Bottom) */}
+                  <div className="studio-floating-chip chip-left-bottom">
+                    <div className="chip-icon chip-icon-pink">
+                      <Music size={15} />
+                    </div>
+                    <div>
+                      <div style={{ color: '#fff', fontSize: '0.72rem', fontWeight: 700 }}>Audio Normalizer</div>
+                      <div style={{ color: '#94a3b8', fontSize: '0.65rem', fontFamily: 'var(--studio-font-mono)' }}>48kHz Dynamic EQ</div>
+                    </div>
+                  </div>
+
+                  {/* 3D Floating Smartphone Frame */}
+                  <div className="canvas-frame">
+                    <div className="phone-notch" />
+
+                    {/* Loading Progress Tracker Overlay */}
+                    {loading && (
+                      <div className="progress-overlay">
+                        <div className="progress-pct-huge">
+                          {Math.round(((currentStageIdx + 1) / 6) * 100)}%
+                        </div>
+                        <div className="progress-track-bg">
+                          <div
+                            className="progress-track-fill"
+                            style={{ width: `${((currentStageIdx + 1) / 6) * 100}%` }}
+                          />
+                        </div>
+                        <ul className="stage-tracker-list">
+                          {STAGES.map((s, idx) => (
+                            <li
+                              key={s}
+                              className={`stage-step-row ${
+                                idx < currentStageIdx ? 'completed' : idx === currentStageIdx ? 'active' : ''
+                              }`}
+                            >
+                              <span className="step-indicator">
+                                {idx < currentStageIdx ? (
+                                  <CheckCircle2 size={13} color="var(--status-success)" />
+                                ) : idx === currentStageIdx ? (
+                                  <RefreshCw size={13} className="spinner" color="var(--accent-cyan)" />
+                                ) : (
+                                  <div
+                                    style={{
+                                      width: '5px',
+                                      height: '5px',
+                                      borderRadius: '50%',
+                                      background: 'rgba(255, 255, 255, 0.25)',
+                                    }}
+                                  />
+                                )}
+                              </span>
+                              <span>{s}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Rendered Video Player or Atmospheric Cinematic Placeholder */}
+                    {result?.videoUrl ? (
+                      <video
+                        src={result.videoUrl}
+                        controls
+                        autoPlay
+                        loop
+                        playsInline
+                        className="active-short-video"
                       />
-                    </div>
-                    <ul className="stage-tracker-list">
-                      {STAGES.map((s, idx) => (
-                        <li
-                          key={s}
-                          className={`stage-step-row ${
-                            idx < currentStageIdx ? 'completed' : idx === currentStageIdx ? 'active' : ''
-                          }`}
-                        >
-                          <span className="step-indicator">
-                            {idx < currentStageIdx ? (
-                              <CheckCircle2 size={13} color="var(--status-success)" />
-                            ) : idx === currentStageIdx ? (
-                              <RefreshCw size={13} className="spinner" color="var(--accent-cyan)" />
-                            ) : (
-                              <div
-                                style={{
-                                  width: '5px',
-                                  height: '5px',
-                                  borderRadius: '50%',
-                                  background: 'rgba(255, 255, 255, 0.25)',
-                                }}
-                              />
-                            )}
-                          </span>
-                          <span>{s}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                    ) : (
+                      <div className="canvas-cinematic-placeholder">
+                        <div className="cinematic-bg-aurora" />
+                        <div className="cinematic-mountain-silhouette" />
 
-                {/* Rendered Video Player or Empty Canvas */}
-                {result?.videoUrl ? (
-                  <video
-                    src={result.videoUrl}
-                    controls
-                    autoPlay
-                    loop
-                    playsInline
-                    className="active-short-video"
-                  />
-                ) : (
-                  <div className="canvas-empty-state">
-                    <div className="canvas-empty-icon">
-                      <Sparkles size={24} />
-                    </div>
-                    <span className="canvas-empty-title">9:16 Vertical Canvas</span>
-                    <p className="canvas-empty-desc">
-                      Rendered video with centered typography, background score, and cinematic overlay will appear here.
-                    </p>
+                        <div className="cinematic-top-pill">
+                          <Sparkles size={11} color="#60a5fa" />
+                          <span>9:16 LIVE PREVIEW</span>
+                        </div>
+
+                        <div className="cinematic-quote-box">
+                          <div className="cinematic-quote-title">
+                            {title || 'BUILD YOUR FUTURE'}
+                          </div>
+                          <p className="cinematic-quote-text">
+                            "{quoteText || 'Stop waiting and start building your future today.'}"
+                          </p>
+                        </div>
+
+                        <div className="cinematic-bottom-meta">
+                          <div className="cinematic-soundtrack-name">
+                            <Music size={12} color="#a855f7" />
+                            <span>{musicUrl ? 'Custom Audio Track' : 'Epic Cinematic Score'}</span>
+                          </div>
+                          <div className="cinematic-eq">
+                            <div className="eq-bar" />
+                            <div className="eq-bar" />
+                            <div className="eq-bar" />
+                            <div className="eq-bar" />
+                            <div className="eq-bar" />
+                            <div className="eq-bar" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Render Success Actions Bar */}
@@ -934,6 +1063,79 @@ export function StudioApp({ onNavigateHome }: { onNavigateHome?: () => void } = 
                   </div>
                 </div>
               )}
+
+              {/* Cinematic Multi-Track Sequence Timeline */}
+              <div className="studio-timeline-panel">
+                <div className="timeline-header">
+                  <div className="timeline-title-group">
+                    <Sliders size={14} color="#60a5fa" />
+                    <span>Cinematic Sequence Timeline</span>
+                  </div>
+                  <div className="timeline-timecode">
+                    <span>00:00:00</span>
+                    <span className="timecode-sep">/</span>
+                    <span>00:00:{String(duration).padStart(2, '0')}</span>
+                  </div>
+                </div>
+
+                <div className="timeline-tracks">
+                  {/* Track 1: Video Track */}
+                  <div className="timeline-track">
+                    <div className="track-label">
+                      <Film size={12} color="#60a5fa" />
+                      <span>VIDEO</span>
+                    </div>
+                    <div className="track-lane">
+                      <div className="lane-clip clip-video" style={{ width: '100%' }}>
+                        <span>{videoUrl ? 'Source Footage (yt-dlp)' : 'Default Background Footage'}</span>
+                        <span style={{ fontSize: '0.62rem', opacity: 0.85 }}>1080×1920</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Track 2: Typography Subtitle Track */}
+                  <div className="timeline-track">
+                    <div className="track-label">
+                      <Type size={12} color="#fbbf24" />
+                      <span>SUBS</span>
+                    </div>
+                    <div className="track-lane">
+                      <div className="lane-clip clip-text" style={{ width: '85%', marginLeft: '5%' }}>
+                        <span>"{quoteText.slice(0, 24)}..."</span>
+                        <span style={{ fontSize: '0.62rem', opacity: 0.85 }}>{style.replace('-', ' ')}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Track 3: Audio Soundtrack Track */}
+                  <div className="timeline-track">
+                    <div className="track-label">
+                      <Music size={12} color="#34d399" />
+                      <span>AUDIO</span>
+                    </div>
+                    <div className="track-lane">
+                      <div className="lane-clip clip-audio" style={{ width: '100%' }}>
+                        <div className="track-waveform">
+                          <span className="wf-bar" style={{ height: '35%' }} />
+                          <span className="wf-bar" style={{ height: '70%' }} />
+                          <span className="wf-bar" style={{ height: '50%' }} />
+                          <span className="wf-bar" style={{ height: '85%' }} />
+                          <span className="wf-bar" style={{ height: '60%' }} />
+                          <span className="wf-bar" style={{ height: '90%' }} />
+                          <span className="wf-bar" style={{ height: '40%' }} />
+                          <span className="wf-bar" style={{ height: '75%' }} />
+                          <span className="wf-bar" style={{ height: '95%' }} />
+                          <span className="wf-bar" style={{ height: '65%' }} />
+                          <span className="wf-bar" style={{ height: '80%' }} />
+                          <span className="wf-bar" style={{ height: '55%' }} />
+                        </div>
+                        <span>{musicUrl ? 'Custom Audio' : 'Rise of the Stoic'}</span>
+                        <span style={{ fontSize: '0.62rem', opacity: 0.85 }}>48kHz</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
